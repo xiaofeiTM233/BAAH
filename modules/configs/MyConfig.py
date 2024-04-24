@@ -1,11 +1,13 @@
 import json
 import os
 import time
+import sys
+import codecs
 from modules.configs.defaultSettings import defaultUserDict, defaultSoftwareDict, defaultSessionDict
 from modules.configs.settingMaps import configname2screenshotname
 # 程序入口应当先import这个类，然后调用parse_user_config方法解析该config实例
 # 然后程序入口再import其他模块，在其他模块中import这个类，就可以直接使用这个类的实例了
-
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
 class MyConfigger:
     """
     维护config字典，包含软件config，用户任务config，语言包
@@ -86,7 +88,7 @@ class MyConfigger:
         读取文件，返回字典
         """
         try:
-            if os.path.getsize(file_path) == 0:
+            if not os.path.exists(file_path):
                 raise FileNotFoundError("文件为空")
             with open(file_path, 'r', encoding="utf8") as f:
                 dictconfig = json.load(f)
