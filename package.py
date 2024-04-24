@@ -90,8 +90,9 @@ for dirpath, dirnames, filenames in os.walk(os.path.join('./dist', 'jsoneditor',
     # 走一层就终止
     break
 
-package_copyfolder('./tools/adb', './dist/BAAH/tools/adb')
-package_copyfolder('./tools/pponnxcr', './dist/BAAH/_internal/pponnxcr')
+# 自动构建不打包工具集
+#package_copyfolder('./tools/adb', './dist/BAAH/tools/adb')
+#package_copyfolder('./tools/pponnxcr', './dist/BAAH/_internal/pponnxcr')
 
 # 挪i18n进去创建下DATA文件夹
 package_copyfolder("./DATA/i18n", "./dist/BAAH/DATA/i18n")
