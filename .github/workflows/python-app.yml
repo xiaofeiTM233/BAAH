@@ -1,6 +1,6 @@
 name: Package BAAH
 
-run-name: BAAH-${{ inputs.log }}
+run-name: BAAH ${{ github.ref }}
 
 on:
   push:
@@ -44,12 +44,12 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-        draft: true
+        draft: false
         prerelease: true
         name: "BAAH-${{ github.ref }}"
-        tag_name: "v${{ github.ref }}+${{ $github.run.id }}${{ $github.run.attempt }}"
+        tag_name: "v${{ github.ref }}+${{ secrets.GITHUB_RUN_ID }}${{ secrets.GITHUB_RUN_ATTEMPT }}"
         body: |
-          ## BAAH-${{ inputs.log }}
+          ## BAAH ${{ inputs.log }}
           ${{ github.sha }}
         files: |
           ./dist/main/*
