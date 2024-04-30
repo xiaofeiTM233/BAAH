@@ -1,7 +1,5 @@
 name: Package BAAH
 
-run-name: BAAH ${{ secrets.GITHUB_RUN_ID }}
-
 on:
   push:
     branches: [ "dev" ]
@@ -11,6 +9,8 @@ on:
 
 permissions:
   contents: write
+
+run-name: BAAH ${{ secrets.GITHUB_RUN_ID }}
 
 jobs:
   build:
