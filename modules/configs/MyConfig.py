@@ -12,7 +12,7 @@ class MyConfigger:
     """
     维护config字典，包含软件config，用户任务config，语言包
     """
-    NOWVERSION="1.4.1"
+    NOWVERSION="1.4.2"
     USER_CONFIG_FOLDER="./BAAH_CONFIGS"
     SOFTWARE_CONFIG_FOLDER="./DATA/CONFIGS"
     LANGUAGE_PACKAGE_FOLDER="./DATA/i18n"
@@ -97,12 +97,13 @@ class MyConfigger:
         except FileNotFoundError as e:
             # 检查文件名
             [path, filename] = os.path.split(file_path)
-            # 以json结尾的文件，如果不存在，就创建一个空的
+            # 以json结尾的文件，如果不存在，此处返回空字典
+            # 自动填写好默认值后，让用户自己选择是否保存
             if filename.endswith(".json"):
-                print(f'文件不存在： {file_path}, 以默认值创建')
-                os.makedirs(path, exist_ok=True)
-                with open(file_path, 'w', encoding="utf8") as f:
-                    json.dump({}, f, indent=4, ensure_ascii=False)
+                # print(f'文件不存在： {file_path}, 以默认值创建')
+                # os.makedirs(path, exist_ok=True)
+                # with open(file_path, 'w', encoding="utf8") as f:
+                #     json.dump({}, f, indent=4, ensure_ascii=False)
                 return {}
             else:
                 raise Exception(f'文件不存在： {file_path}')
