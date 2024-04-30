@@ -3,11 +3,11 @@ name: Package BAAH
 run-name: BAAH-${{ inputs.log }}
 
 on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
   workflow_dispatch:
-    inputs:
-      log:
-        description: 'log'
-        default: '1.0.0'
 
 permissions:
   contents: write
@@ -46,10 +46,11 @@ jobs:
       with:
         draft: true
         prerelease: true
-        name: "BAAH-${{ inputs.log }}"
-        tag_name: "v${{ inputs.log }}"
+        name: "BAAH-${{ github.ref }}"
+        tag_name: "v${{ github.ref }}+${{ $github.run.id }}${{ $github.run.attempt }}"
         body: |
-          BAAH-${{ inputs.log }}
+          ## BAAH-${{ inputs.log }}
+          ${{ github.sha }}
         files: |
           ./dist/main/*
           LICENSE
