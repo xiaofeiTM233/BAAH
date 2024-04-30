@@ -1,6 +1,6 @@
 name: Package BAAH
 
-run-name: BAAH ${{ github.ref }}
+run-name: BAAH ${{ secrets.GITHUB_RUN_ID }}
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: BAAH-${{ github.sha }}
+        name: BAAH-${{ secrets.GITHUB_RUN_ID }}
         path: |
           ./dist/main/*
 
@@ -46,10 +46,10 @@ jobs:
       with:
         draft: false
         prerelease: true
-        name: "BAAH-${{ github.ref }}"
-        tag_name: "v${{ github.ref }}+${{ secrets.GITHUB_RUN_ID }}${{ secrets.GITHUB_RUN_ATTEMPT }}"
+        name: "BAAH ${{ secrets.GITHUB_RUN_ATTEMPT }}"
+        tag_name: "v1.1.${{ secrets.GITHUB_RUN_ID }}+${{ secrets.GITHUB_RUN_ATTEMPT }}"
         body: |
-          ## BAAH ${{ inputs.log }}
+          ## BAAH v1.1.${{ secrets.GITHUB_RUN_ID }}+${{ secrets.GITHUB_RUN_ID }}
           ${{ github.sha }}
         files: |
           ./dist/main/*
