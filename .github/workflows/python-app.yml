@@ -9,6 +9,9 @@ on:
         description: 'log'
         default: '1.0.0'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -27,7 +30,7 @@ jobs:
         pip install -r requirements.txt
         pip install nicegui
 
-    - name: Run package.py
+    - name: Run package
       run: python package.py
 
     - name: Upload artifacts
@@ -37,3 +40,16 @@ jobs:
         name: BAAH-${{ github.sha }}
         path: |
           ./dist/main/*
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: true
+        prerelease: true
+        name: "BAAH-${{ inputs.log }}"
+        tag_name: "v${{ inputs.log }}"
+        body: |
+          BAAH-${{ inputs.log }}
+        files: |
+          ./dist/main/*
+          LICENSE
