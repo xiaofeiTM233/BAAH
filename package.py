@@ -117,6 +117,8 @@ package_copyfile("./dist/jsoneditor/jsoneditor.exe", "./dist/BAAH/jsoneditor.exe
 package_rename("./dist/BAAH/jsoneditor.exe", "./dist/BAAH/BAAH_GUI.exe")
 package_rename("./dist/BAAH", f"./dist/BAAH{config_version}")
 
+package_create_folder("./dist/main")
+
 print("开始压缩")
 time.sleep(2)
 
@@ -125,7 +127,7 @@ z = zipfile.ZipFile(f'./dist/main/BAAH{config_version}.zip', 'w', zipfile.ZIP_DE
 startdir = f"./dist/BAAH{config_version}"
 for dirpath, dirnames, filenames in os.walk(startdir):
     for filename in filenames:
-        z.write(os.path.join(dirpath, filename), arcname=os.path.join(dirpath, filename).replace("/dist",""))
+        z.write(os.path.join(dirpath, filename), arcname=os.path.join(dirpath, filename).replace("/dist/main",""))
 
 print(f"完成，压缩包./dist/main/BAAH{config_version}.zip已生成")
 print(f"压缩包大小为{os.path.getsize(f'./dist/main/BAAH{config_version}.zip')/1024/1024:.2f}MB")
