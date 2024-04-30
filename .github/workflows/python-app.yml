@@ -10,7 +10,7 @@ on:
 permissions:
   contents: write
 
-run-name: BAAH ${{ secrets.GITHUB_RUN_ID }}
+run-name: BAAH $GITHUB_RUN_ID
 
 jobs:
   build:
@@ -37,7 +37,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: BAAH-${{ secrets.GITHUB_RUN_ID }}
+        name: BAAH-$GITHUB_RUN_ID
         path: |
           ./dist/main/*
 
@@ -46,10 +46,10 @@ jobs:
       with:
         draft: false
         prerelease: true
-        name: "BAAH ${{ secrets.GITHUB_RUN_ATTEMPT }}"
-        tag_name: "v1.1.${{ secrets.GITHUB_RUN_ID }}+${{ secrets.GITHUB_RUN_ATTEMPT }}"
+        name: "BAAH $GITHUB_RUN_ATTEMPT"
+        tag_name: "v1.1.$GITHUB_RUN_ID+$GITHUB_RUN_ATTEMPT"
         body: |
-          ## BAAH v1.1.${{ secrets.GITHUB_RUN_ID }}+${{ secrets.GITHUB_RUN_ID }}
+          ## BAAH v1.1.$GITHUB_RUN_ID+$GITHUB_RUN_ATTEMPT
           ${{ github.sha }}
         files: |
           ./dist/main/*
