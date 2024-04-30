@@ -1,9 +1,16 @@
-name: Build and Package BAAH
+name: Package BAAH
 
-on: workflow_dispatch
+run-name: BAAH-${{ inputs.log }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      log:
+        description: 'log'
+        default: '1.0.0'
 
 jobs:
-  build-and-package:
+  build:
     runs-on: windows-latest
 
     steps:
