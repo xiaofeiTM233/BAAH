@@ -1,10 +1,6 @@
 name: Build and Package BAAH
 
-on:
-  push:
-    branches: [ "dev" ]
-  pull_request:
-    branches: [ "dev" ]
+on: workflow_dispatch
 
 jobs:
   build-and-package:
