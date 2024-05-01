@@ -1,5 +1,7 @@
 name: Package BAAH
 
+run-name: BAAH ${{ github.run_id }}
+
 on:
   push:
     branches: [ "dev" ]
@@ -9,8 +11,6 @@ on:
 
 permissions:
   contents: write
-
-run-name: BAAH ${{ GITHUB_RUN_ID }}
 
 jobs:
   build:
@@ -37,7 +37,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: BAAH-${{ GITHUB_RUN_ID }}
+        name: BAAH-${{ github.run_id }}
         path: |
           ./dist/main/*
 
@@ -46,10 +46,10 @@ jobs:
       with:
         draft: false
         prerelease: true
-        name: "BAAH ${{ GITHUB_RUN_ATTEMPT }}"
-        tag_name: "v1.1.${{ GITHUB_RUN_ID }}+${{ GITHUB_RUN_ATTEMPT }}"
+        name: "BAAH ${{ github.run_attempt }}"
+        tag_name: "v1.1.${{ github.run_id }}+${{ github.run_attempt }}"
         body: |
-          ## BAAH v1.1.${{ GITHUB_RUN_ID }}+${{ GITHUB_RUN_ATTEMPT }}
+          ## BAAH v1.1.${{ github.run_id }}+${{ github.run_attempt }}
           ${{ github.sha }}
         files: |
           ./dist/main/*
