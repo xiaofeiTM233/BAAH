@@ -46,7 +46,7 @@ jobs:
       with:
         draft: false
         prerelease: true
-        name: "BAAH ${{ github.run_attempt }}"
+        name: "BAAH ${{ github.run_number }}"
         tag_name: "v1.1.${{ github.run_number }}+${{ github.run_id }}"
         body: |
           ## BAAH v1.1.${{ github.run_number }}+${{ github.run_id }}
