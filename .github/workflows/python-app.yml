@@ -47,9 +47,9 @@ jobs:
         draft: false
         prerelease: true
         name: "BAAH ${{ github.run_attempt }}"
-        tag_name: "v1.1.${{ github.run_id }}+${{ github.run_attempt }}"
+        tag_name: "v1.1.${{ github.run_attempt }}+${{ github.run_id }}"
         body: |
-          ## BAAH v1.1.${{ github.run_id }}+${{ github.run_attempt }}
+          ## BAAH v1.1.${{ github.run_attempt }}+${{ github.run_id }}
           ${{ github.sha }}
         files: |
           ./dist/main/*
