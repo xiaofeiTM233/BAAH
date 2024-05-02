@@ -127,7 +127,7 @@ z = zipfile.ZipFile(f'./dist/main/BAAH{config_version}.zip', 'w', zipfile.ZIP_DE
 startdir = f"./dist/BAAH{config_version}"
 for dirpath, dirnames, filenames in os.walk(startdir):
     for filename in filenames:
-        z.write(os.path.join(dirpath, filename), arcname=os.path.join(dirpath, filename).replace("/dist/main",""))
+        z.write(os.path.join(dirpath, filename), arcname=os.path.join(dirpath, filename).replace("/dist",""))
 
 print(f"完成，压缩包./dist/main/BAAH{config_version}.zip已生成")
 print(f"压缩包大小为{os.path.getsize(f'./dist/main/BAAH{config_version}.zip')/1024/1024:.2f}MB")
@@ -139,7 +139,7 @@ for dirpath, dirnames, filenames in os.walk(startdir):
     if "_internal" in dirpath or "BAAH_CONFIGS" in dirpath:
         continue
     for filename in filenames:
-        z.write(os.path.join(dirpath, filename), arcname=os.path.join(dirpath, filename).replace("/dist/main",""))
+        z.write(os.path.join(dirpath, filename), arcname=os.path.join(dirpath, filename).replace("/dist",""))
 
 print(f"完成，压缩包./dist/main/BAAH{config_version}_update.zip已生成")
 print(f"压缩包大小为{os.path.getsize(f'./dist/main/BAAH{config_version}_update.zip')/1024/1024:.2f}MB")
