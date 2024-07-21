@@ -47,7 +47,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         draft: false
-        prerelease: true
+        prerelease: false
         name: "BAAH ${{ inputs.ver }}"
         tag_name: "v${{ inputs.ver }}+${{ github.run_id }}"
         body: |
