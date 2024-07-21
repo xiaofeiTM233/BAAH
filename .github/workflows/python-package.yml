@@ -1,0 +1,58 @@
+name: Package BAAH
+
+run-name: BAAH-${{ inputs.ver }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ver:
+        description: 'version'
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.x
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Download Resource
+      uses: robinraju/release-downloader@v1.8
+      with:
+        repository: xiaofeiTM233/BAAH-Resource
+        fileName: "tools.zip"
+        latest: true
+        out-file-path: "tools"
+        extract: true
+
+    - name: Run package
+      run: python package.py
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: false
+        prerelease: true
+        name: "BAAH ${{ inputs.ver }}"
+        tag_name: "v${{ inputs.ver }}+${{ github.run_id }}"
+        body: |
+          ## BAAH v${{ inputs.ver }}+${{ github.run_id }}
+          ${{ github.sha }}
+        files: |
+          ./dist/*
+          LICENSE
