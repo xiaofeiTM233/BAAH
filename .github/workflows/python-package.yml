@@ -1,8 +1,16 @@
 name: Package BAAH
 
-run-name: BAAH-${{ inputs.ver }}
+run-name: BAAH${{ inputs.ver }}+${{ github.run_id }}
 
 on:
+  push:
+    tags:
+      - "v*"
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
   workflow_dispatch:
     inputs:
       ver:
@@ -48,7 +56,7 @@ jobs:
       with:
         draft: false
         prerelease: false
-        name: "BAAH ${{ inputs.ver }}"
+        name: "BAAH ${{ inputs.ver }}+${{ github.run_id }}"
         tag_name: "v${{ inputs.ver }}+${{ github.run_id }}"
         body: |
           ## BAAH v${{ inputs.ver }}+${{ github.run_id }}
