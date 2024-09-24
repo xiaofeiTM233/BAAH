@@ -6,10 +6,14 @@ from DATA.assets.ButtonName import ButtonName
 
 from modules.utils import click, swipe, match, page_pic, match_pixel, button_pic, popup_pic, sleep, screenshot, config
 
+from modules.utils.adb_utils import check_app_running, open_app
 from modules.utils.log_utils import logging
 
 
 class Task:
+    STATUS_SUCCESS = 0
+    STATUS_ERROR = 1
+    STATUS_SKIP = 2
     # 父类
     def __init__(self, name, pre_times = 2, post_times = 4) -> None:
         self.name = name
@@ -17,6 +21,7 @@ class Task:
         self.post_times = post_times
         self.click_magic_when_run = True
         """运行时是否点击魔法点重置窗口状态到Page级别"""
+        self.status = self.STATUS_SUCCESS
         
     def pre_condition(self) -> bool:
         """
@@ -69,12 +74,14 @@ class Task:
     @staticmethod
     def back_to_home(times = 3) -> bool:
         """
-        尝试从游戏内的页面返回主页
+        尝试返回到游戏主页，如果游戏不在前台，会尝试打开游戏到前台，但不会等待登录加载，因此必须确保游戏在后台
         
         返回成功与否
         """
         logging.info({"zh_CN": "尝试返回主页", "en_US":"Try back to homepage"})
         can_back_home = False
+        if not check_app_running(config.userconfigdict["ACTIVITY_PATH"]):
+            open_app(config.userconfigdict["ACTIVITY_PATH"])
         for i in range(times):
             click(Page.MAGICPOINT, sleeptime=0.1)
             click(Page.MAGICPOINT, sleeptime=0.2)

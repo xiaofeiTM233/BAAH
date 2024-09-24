@@ -24,8 +24,10 @@ defaultUserDict = {
     "TASK_ORDER": {"d":["登录游戏"]},
     "SHOP_NORMAL": {"d":[]},
     "SHOP_CONTEST": {"d":[]},
+    "PUSH_NORMAL_USE_SIMPLE": {"d":False},
     "PUSH_NORMAL_QUEST": {"d":0},
     "PUSH_NORMAL_QUEST_LEVEL": {"d":1},
+    "PUSH_HARD_USE_SIMPLE": {"d":False},
     "PUSH_HARD_QUEST": {"d":0},
     "PUSH_HARD_QUEST_LEVEL": {"d":1},
     "TASK_ACTIVATE": {"d":[True]},
@@ -108,6 +110,14 @@ defaultUserDict = {
     "CAFE_INVITE":{"d":True},
     "RAISE_ERROR_IF_CANNOT_PUSH_EVENT_QUEST":{"d":True},
     
+    # 多倍活动开启状态相关
+    "SPEICAL_EVENT_STATUS":{"d":False},
+    "NORMAL_QUEST_EVENT_STATUS":{"d":False},
+    "HARD_QUEST_EVENT_STATUS":{"d":False},
+    "EXCHANGE_EVENT_STATUS":{"d":False},
+
+
+
     # 邮件相关
     "MAIL_USER":{"d":""},
     "MAIL_PASS":{"d":""},
@@ -153,6 +163,12 @@ defaultUserDict = {
     
     # 自定义任务
     "USER_DEF_TASKS":{"d":""},
+    
+    "CRAFT_TIMES":{"d":1},
+    
+    # 竞技场优先级、
+    "CONTEST_LEVEL_PRIORITY":{"d":10},
+    "CONTEST_RANK_PRIORITY":{"d":10},
 }
 
 # 软件的config里的默认值
@@ -171,7 +187,11 @@ defaultSoftwareDict = {
             "from": "LANGUAGE", # map功能必须要有from字段，这里充当占位符
             # 使用现在的时间戳作为加密key，长度截取最后五位，字符串！
             "map": lambda x:  str(int(time()))[-5:]
-        }}
+        }},
+    # 用户在GUI里的各种备注
+    "NOTE":{"d":{
+        "HARD_NOTE":"",
+    }}
 }
 
 # sessiondict是一个dict，存储一个BAAH配置任务的运行时信息，每次运行的时候都会按照以下内容初始化一个新的sessiondict
@@ -190,5 +210,5 @@ defaultSessionDict = {
     "INFO_DICT":{"d":{}},
     "INFO_LIST":{"d":[]},
     # 截图文件读取失败的次数
-    "SCREENSHOT_READ_FAIL_TIMES":{"d":0},
+    "SCREENSHOT_READ_FAIL_TIMES":{"d":0}
 }

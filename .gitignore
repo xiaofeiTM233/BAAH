@@ -1,6 +1,7 @@
 tools/
 test.spec
 jsoneditor.spec
+BAAH_UPDATE.spec
 BAAH.spec
 compact_log.txt
 /*.png
@@ -9,6 +10,9 @@ compact_log.txt
 /_internal
 /BAAH.exe
 /BAAH_GUI.exe
+/platform-tools-latest.zip
+/DATA/update/
+/BAAH*_update.zip
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -173,3 +177,4 @@ cython_debug/
 # ignore all config files, except example.json
 BAAH_CONFIGS/
 !BAAH_CONFIGS/example.json
+.nicegui

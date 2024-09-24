@@ -59,6 +59,8 @@ class InCraft(Task):
                 CN: "点击制造失败",
                 EN: "Failed to click craft button"
             }))
+            # 没制造材料，跳过之后的制造任务
+            self.status=Task.STATUS_SKIP
             return
         # 点击开放按钮
         click(self.BUTTON_CRAFT)
@@ -69,17 +71,41 @@ class InCraft(Task):
         选择制造内容，确定制造
         """
         #! 点击开放节点按钮后，如果没有走到最后一步，那么下次进入制造页面时，会直接跳转到这里
-        # 点左下角节点，使节点左移
+        # 点左下角节点，使左上角超大一个UI节点左移
         COLOR_W_CIRCLE = ((252, 252, 245), (255, 255, 252))
         POS_W_LEFT = (156, 109)
+        # 黄色小节点
+        COLOR_YELLOW_CRAFT_POINT = ((120, 180, 250), (190, 255, 255))
+        # 五个节点坐标
+        ALL_POINTS = (
+            (174, 554),
+            (303, 531),
+            (413, 474),
+            (505, 388),
+            (570, 276)
+        )
         self.run_until(
             lambda: click((444, 554)),
             lambda: match_pixel(POS_W_LEFT, COLOR_W_CIRCLE),
             times=3
         )
+        sleep(0.7)
         # 选择具体节点 并确定
+        # 从五个节点里面挑黄的出来，没有的话就第一个
+        logging.info(istr({
+            CN:"进入节点页面，选择制造节点",
+            EN:"At Node Selection Page, select the craft node"
+        }))
+        for point in ALL_POINTS:
+            if match_pixel(point, COLOR_YELLOW_CRAFT_POINT):
+                click(point)
+                break
         # 第一个制造节点结束
         # 点击右下角按钮, 直到出现弹窗
+        logging.info(istr({
+            CN:"开始制造",
+            EN:"Start crafting"
+        }))
         self.run_until(
             lambda: click(self.BUTTON_CRAFT),
             lambda: self.has_popup(),
@@ -114,6 +140,7 @@ class InCraft(Task):
         # 获取当前制造状态
         status_list = self.getNowCraftStatus()
         logging.info(status_list)
+        now_craft_number = 0
         for ind, item in enumerate(status_list):
             # 处理每一个位置
             if item == self.STATUS_CRAFT_DOING:
@@ -134,6 +161,19 @@ class InCraft(Task):
                 lambda: not Page.is_page(PageName.PAGE_CRAFT)
             )
             self.dealing_with_craft()
+            if self.status == Task.STATUS_SKIP:
+                logging.warn(istr({
+                    CN: "制造材料不足，跳过之后的制造任务",
+                    EN: "Insufficient crafting materials, skip subsequent crafting tasks"
+                }))
+                return 
+            now_craft_number += 1
+            if now_craft_number >= config.userconfigdict["CRAFT_TIMES"]:
+                logging.info(istr({
+                    CN: f"制造次数已达上限 {config.userconfigdict['CRAFT_TIMES']}",
+                    EN: f"The number of crafting has reached the upper limit  {config.userconfigdict['CRAFT_TIMES']}"
+                }))
+                return
                 
 
      

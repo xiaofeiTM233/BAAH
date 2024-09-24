@@ -112,7 +112,7 @@ def get_now_running_app(use_config=None):
             # 找到当前运行的app那行
             output = sentence
             if "null" in output:
-                logging.warn({"zh_CN": "MUMU模拟器需要设置里关闭保活！",
+                logging.warn({"zh_CN": ">>> MUMU模拟器需要设置里关闭保活！ <<<",
                               "en_US": "If you are using MUMU emulator, please turn off the keep alive in the settings!"})
             break
     # 截取app activity
@@ -181,6 +181,26 @@ def open_app(activity_path: str):
     time.sleep(1)
     appname = activity_path.split("/")[0]
     subprocess_run([get_config_adb_path(), "-s", getNewestSeialNumber(), 'shell', 'monkey', '-p', appname, '1'], isasync=True)
+
+def get_dpi(use_config=None):
+    """
+    获取屏幕dpi结果，例如 Physical density: 320
+    """
+    if not use_config:
+        use_config = config
+    dpires = subprocess_run([get_config_adb_path(use_config), "-s", getNewestSeialNumber(use_config), "shell", "wm", "density"]).stdout
+    return dpires
+
+def set_dpi(target_dpi, use_config=None):
+    """
+    set DPI
+    """
+    if not use_config:
+        use_config = config
+    if isinstance(target_dpi, float):
+        target_dpi = int(target_dpi)
+    subprocess_run([get_config_adb_path(use_config), "-s", getNewestSeialNumber(use_config), "shell", "wm", "density", str(target_dpi)], isasync=True)
+    
 
 # NO_NEED = "NO_NEED"
 # ERROR = "ERROR"
