@@ -1,4 +1,6 @@
 {
+    "config_file":"設定ファイル",
+
     "task_login_game": "ゲームにログインする",
     "task_clear_momotalk": "モモトークをクリアする",
     "task_cafe": "カフェ",
@@ -31,7 +33,7 @@
     "setting_other": "その他の設定",
     "setting_vpn": "VPN設定",
 
-    "BAAH_desc": "BAAHは、碧藍のアーカイブ/ウルトラブルーアーカイブの日本版、国際版、公式中国版、中国B版のデイリーミッションを自動的に実行します。設定ファイルはBAAH_CONFIGSフォルダに保存されます。QQグループ：441069156",
+    "BAAH_desc": "BAAHは、碧藍のアーカイブ/ウルトラブルーアーカイブの日本版、国際版、公式中国版、中国B版のデイリーミッションを自動的に実行します。設定ファイルはBAAH_CONFIGSフォルダに保存されます。QQグループ：715586983",
     "BAAH_get_version": "最新バージョンはGithubからダウンロードするか、グループ内からダウンロードできます",
     "BAAH_attention": "エミュレータ解像度は1280*720、DPIは240に設定してください！ ゲーム内設定オプション-ゲーム-スキルアニメーション-オフ、設定オプション-画像-解像度-低、設定オプション-画像-戦闘時の上下の黒帯-オフ",
 
@@ -48,7 +50,7 @@
     "button_save_and_run_gui": "保存して実行（GUI、実験的）",
     "button_save_and_run_terminal": "保存して実行（ターミナル）",
     "button_check_version": "更新を確認してダウンロードする（BAAHが実行されていないことを確認してください）",
-    "button_update_advance":"最新バージョンに一括更新（実験的）",
+    "button_update_advance":"最新バージョンに一括更新（推薦する）",
     "button_select_all": "すべて選択",
     "button_select_none": "選択解除",
     "button_enable": "有効にする",
@@ -66,6 +68,8 @@
     "config_kill_port": "エミュレータ起動前にポートを強制解放する",
     "config_emulator_path": "エミュレータパス",
     "config_close_emulator_and_baah": "実行終了後、エミュレータとBAAHを閉じる",
+    "config_close_emulator_when_finish" : "実行が終了したら、シミュレーターを閉じます",
+    "config_close_BAAH_when_finish" : "実行が終了したら、BAAHを閉じます", 
     "config_desc_times": "回数に関する説明：4回は4回扫荡することを意味し、-1回は最大回数（中国版の最大回数をサポート）を意味します。-2回は最大回数から2回扫荡することを意味します。",
     "config_nth": "第",
     "config_day": "日",
@@ -140,6 +144,8 @@
     "config_craft_desc":"現在、クラフトタスクは1つのノードのみをサポートし、指定されたアイテムの優先順位をサポートしていません。国内サーバーがワンクリック製造を実装した後、ワンクリック製造を使用してサポートする予定です",
     "config_craft_max_times":"最大製造回数",
     "desc_note":"備考",
+    "config_login_timeout": "ゲームにログインするためのタイムアウト時間(秒)",
+    "config_max_emulator_restart_times": "ログインタイムアウト後のエミュレータ再起動の最大数",
 
     "config_server_jp": "日本サーバー",
     "config_server_cn": "中国公式サーバー",

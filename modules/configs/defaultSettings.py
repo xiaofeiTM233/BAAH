@@ -1,4 +1,7 @@
 from modules.configs.settingMaps import *
+
+from common import TaskName
+
 from time import time
 
 # 用户的脚本config里的默认值以及可选值
@@ -21,7 +24,7 @@ defaultUserDict = {
     "EVENT_QUEST_LEVEL": {"d":[]},
     "HARD": {"d":[]},
     "NORMAL": {"d":[]},
-    "TASK_ORDER": {"d":["登录游戏"]},
+    "TASK_ORDER": {"d": [TaskName.LOGIN_GAME.value]},
     "SHOP_NORMAL": {"d":[]},
     "SHOP_CONTEST": {"d":[]},
     "PUSH_NORMAL_USE_SIMPLE": {"d":False},
@@ -41,7 +44,21 @@ defaultUserDict = {
         }
     },
     "TARGET_EMULATOR_PATH":{"d":""},
-    "CLOSE_EMULATOR_BAAH":{"d":False},
+    "CLOSE_EMULATOR_BAAH":{"d":False}, # deprecate
+    "CLOSE_EMULATOR_FINISH":{
+        "d": False,
+        "m": {
+            "from": "CLOSE_EMULATOR_BAAH",
+            "map": lambda x: x
+        }
+    },
+    "CLOSE_BAAH_FINISH":{
+        "d": False,
+        "m": {
+            "from": "CLOSE_EMULATOR_BAAH",
+            "map": lambda x: x
+        }
+    },
     "PIC_PATH":{
         "d":"./DATA/assets",
         "s":[
@@ -98,7 +115,7 @@ defaultUserDict = {
     "AUTO_EVENT_STORY_PUSH":{"d":False},
     "EXPLORE_RAINBOW_TEAMS":{"d":False},
     "ENABLE_MAIL_NOTI":{"d":False},
-    "CAFE_TOUCH_WAY_DIFF":{"d":False},
+    "CAFE_TOUCH_WAY_DIFF":{"d":True},
     "USE_VPN":{"d":False},
     "VPN_CONFIG":{"d":{
         "VPN_ACTIVITY":"com.github.kr328.clash/com.github.kr328.clash.MainActivity",
@@ -128,8 +145,8 @@ defaultUserDict = {
     
     "AUTO_ASSAULT_LEVEL":{"d":4},
     
-    "RUN_UNTIL_TRY_TIMES":{"d":6},
-    "RUN_UNTIL_WAIT_TIME":{"d":1.5},
+    "RUN_UNTIL_TRY_TIMES":{"d":9},
+    "RUN_UNTIL_WAIT_TIME":{"d":0.6},
     
     # 是否直接使用emulator-5554这种序列号
     "ADB_DIRECT_USE_SERIAL_NUMBER":{"d":False},
@@ -147,7 +164,7 @@ defaultUserDict = {
     "USE_MEMORY_IMAGE":{"d":False},
     
     # 时间表是否自动选择
-    "SMART_TIMETABLE":{"d":False},
+    "SMART_TIMETABLE":{"d":True},
     # 时间表各项权重
     "TIMETABLE_WEIGHT_OF_REWARD":{"d":10},
     "TIMETABLE_WEIGHT_OF_HEART":{"d":20},
@@ -169,6 +186,11 @@ defaultUserDict = {
     # 竞技场优先级、
     "CONTEST_LEVEL_PRIORITY":{"d":10},
     "CONTEST_RANK_PRIORITY":{"d":10},
+
+    # 游戏启动超时时间，秒。防止意料之外的错误判断（超时会触发error），默认超时时间设长点
+    "GAME_LOGIN_TIMEOUT":{"d":600},
+    # 游戏卡启动时的重新启动模拟器最多尝试次数
+    "MAX_RESTART_EMULATOR_TIMES":{"d":0},
 }
 
 # 软件的config里的默认值
@@ -210,5 +232,7 @@ defaultSessionDict = {
     "INFO_DICT":{"d":{}},
     "INFO_LIST":{"d":[]},
     # 截图文件读取失败的次数
-    "SCREENSHOT_READ_FAIL_TIMES":{"d":0}
+    "SCREENSHOT_READ_FAIL_TIMES":{"d":0},
+    # 当前尝试重启模拟器次数
+    "RESTART_EMULATOR_TIMES":{"d":0},
 }

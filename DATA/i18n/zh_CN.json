@@ -1,4 +1,6 @@
 {
+    "config_file":"配置文件",
+
     "task_login_game":"登录游戏",
     "task_clear_momotalk":"清momotalk",
     "task_cafe":"咖啡馆",
@@ -31,7 +33,7 @@
     "setting_other":"其他设置",
     "setting_vpn":"加速器设置",
 
-    "BAAH_desc":"BAAH可以帮助你完成碧蓝档案/蔚蓝档案的日服，国际服，国服官服，国服B服的每日任务。配置文件存放于BAAH_CONFIGS文件夹内。QQ群：441069156",
+    "BAAH_desc":"BAAH可以帮助你完成碧蓝档案/蔚蓝档案的日服，国际服，国服官服，国服B服的每日任务。配置文件存放于BAAH_CONFIGS文件夹内。QQ群：715586983",
     "BAAH_get_version":"获取最新版本可以到Github下载，或进群下载",
     "BAAH_attention":"模拟器分辨率请设置为1280*720，240DPI! 游戏内 设置选项-游戏-技能动画-关，设置选项-图像-分辨率-低，设置选项-图像-战斗时上下黑边-关",
 
@@ -47,8 +49,8 @@
     "button_save":"保存",
     "button_save_and_run_gui":"保存并执行(GUI，实验性功能)",
     "button_save_and_run_terminal":"保存并执行(终端)",
-    "button_check_version":"检查更新并下载（确保BAAH不在运行），下载完成后请关闭BAAH手动解压更新补丁",
-    "button_update_advance":"一键更新到最新版本（实验性功能）",
+    "button_check_version":"检查更新并下载，下载完成后请关闭BAAH手动解压更新补丁（确保BAAH不在运行）",
+    "button_update_advance":"一键更新到最新版本（推荐）",
     "button_select_all":"全选",
     "button_select_none":"全不选",
     "button_enable":"启用",
@@ -66,6 +68,8 @@
     "config_kill_port": "模拟器启动前强制释放端口",
     "config_emulator_path":"模拟器路径",
     "config_close_emulator_and_baah": "运行结束后关闭模拟器和BAAH",
+    "config_close_emulator_when_finish" : "运行结束后关闭模拟器",
+    "config_close_BAAH_when_finish" : "运行结束后关闭BAAH", 
     "config_desc_times":"关于次数的说明：4次就是扫荡4次，-1次即为扫荡max次（支持国服max次），-2次即为扫荡max-2次。",
     "config_nth":"第",
     "config_day":"天",
@@ -140,6 +144,8 @@
     "config_craft_desc":"制造任务目前只能一个节点，且不支持指定物品的优先级，等国服实装一键制造后会通过一键制造来支持",
     "config_craft_max_times":"尝试制造次数",
     "desc_note":"备注",
+    "config_login_timeout":"登录游戏超时时间（秒）",
+    "config_max_emulator_restart_times": "登录超时后模拟器最多重启次数，0为不重启",
 
     "config_server_jp":"日服",
     "config_server_cn":"国服官服",

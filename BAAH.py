@@ -15,7 +15,7 @@ def print_BAAH_info():
     print("||" + f"Version: {config.softwareconfigdict['NOWVERSION']}".center(80, " ") + "||")
     print("||" + "Bilibili: https://space.bilibili.com/7331920".center(80, " ") + "||")
     print("||" + "Github: https://github.com/sanmusen214/BAAH".center(80, " ") + "||")
-    print("||" + "QQ group: 441069156".center(80, " ") + "||")
+    print("||" + "QQ group: 715586983".center(80, " ") + "||")
     print("||" + "".center(80, " ") + "||")
     print("+" + "".center(80, "=") + "+")
 
@@ -32,7 +32,7 @@ def print_BAAH_config_info():
 
 def print_BAAH_finish():
     print_BAAH_info()
-    print("\n程序运行结束，如有问题请加群(441069156)反馈，在Github上检查下是否有版本更新")
+    print("\n程序运行结束，如有问题请反馈，在Github上检查下是否有版本更新")
     print("https://github.com/sanmusen214/BAAH")
 
 def BAAH_release_adb_port(justDoIt=False):
@@ -193,7 +193,7 @@ def BAAH_kill_emulator():
     杀掉模拟器进程
     """
     if (config.userconfigdict["TARGET_EMULATOR_PATH"] and
-            config.userconfigdict["TARGET_EMULATOR_PATH"] != "" and config.userconfigdict["CLOSE_EMULATOR_BAAH"]):
+            config.userconfigdict["TARGET_EMULATOR_PATH"] != "" and config.userconfigdict["CLOSE_EMULATOR_FINISH"]):
         try:
             if not config.sessiondict["EMULATOR_PROCESS_PID"]:
                 logging.error({"zh_CN": "未能获取到模拟器进程，跳过关闭模拟器",
@@ -263,7 +263,7 @@ def BAAH_auto_quit(forcewait = False, key_map_func = None):
     # 默认值空字典
     if key_map_func is None:
         key_map_func = dict()
-    if forcewait or not config.userconfigdict["CLOSE_EMULATOR_BAAH"]:
+    if forcewait or not config.userconfigdict["CLOSE_BAAH_FINISH"]:
         user_input = input(f"Press Enter to exit/回车退出, [{key_map_func.keys()}]:")
         for k in key_map_func:
             if user_input.upper() == k.upper():
@@ -301,7 +301,7 @@ def BAAH_send_err_mail(e):
             logging.error({"zh_CN": "发送邮件失败", "en_US": "Failed to send email"})
             logging.error(eagain)
 
-def BAAH_main():
+def BAAH_main(run_precommand = True):
     """
     执行BAAH主程序，在此之前config应该已经被单独import然后解析为用户指定的配置文件->随后再导入my_AllTask以及其他依赖config的模块
     """
@@ -309,7 +309,8 @@ def BAAH_main():
         config.sessiondict["BAAH_START_TIME"] = time.strftime("%Y-%m-%d %H:%M:%S")
         print_BAAH_info()
         print_BAAH_config_info()
-        BAAH_run_pre_command()
+        if run_precommand:
+            BAAH_run_pre_command()
         BAAH_release_adb_port()
         BAAH_start_emulator()
         BAAH_check_adb_connect()
@@ -328,6 +329,26 @@ def BAAH_main():
         
         print_BAAH_config_info()
         BAAH_auto_quit()
+
+    except EmulatorBlockError as ebe:
+        logging.info(istr({
+            CN: "模拟器卡顿，重启模拟器",
+            EN: "Emulator Blocked, Restart Emulator"
+        }))
+        if config.sessiondict["EMULATOR_PROCESS_PID"] is None:
+            raise Exception(istr({
+                CN: "无模拟器pid，无法重启模拟器，请确保模拟器由BAAH启动",
+                EN: "Cannot identify emulator's pid, fail to restart emulator, please make sure it is started by BAAH"
+            }))
+        # sessionstorage里重启次数加1
+        store_restart_times = config.sessiondict["RESTART_EMULATOR_TIMES"] + 1
+        BAAH_kill_emulator()
+        time.sleep(5)
+        # 重新加载其他config值，覆盖模拟器重启次数到sessiondict
+        config.parse_user_config(config.nowuserconfigname)
+        config.sessiondict["RESTART_EMULATOR_TIMES"] = store_restart_times
+        # 防止重复调用precommand
+        BAAH_main(run_precommand=False)
 
         
     except Exception as e:
