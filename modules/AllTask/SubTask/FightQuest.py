@@ -9,8 +9,8 @@ from modules.AllTask.SubTask.SkipStory import SkipStory
 from modules.AllTask.Task import Task
 
 from modules.utils import (click, match_pixel, swipe, match, page_pic, button_pic, popup_pic, sleep, ocr_area, config,
-                           screenshot)
-
+                           screenshot, istr, CN, EN)
+import numpy as np
 
 class FightQuest(Task):
     """
@@ -22,7 +22,7 @@ class FightQuest(Task):
     in_main_story_mode: 是否是在剧情模式下，如果是，那么最后没有奖励页面， 跳过pre判断，直接来到调整三倍速和auto阶段，主线剧情里的战斗有时候无法用右上UI判断进入了战斗
     """
 
-    def __init__(self, backtopic, start_from_editpage=True, in_main_story_mode=False, name="FightQuest") -> None:
+    def __init__(self, backtopic, start_from_editpage=True, in_main_story_mode=False, auto_team=False, name="FightQuest") -> None:
         super().__init__(name)
         self.backtopic = backtopic
         # 是否从编辑部队页面开始，或者直接就是游戏内战斗画面
@@ -33,6 +33,10 @@ class FightQuest(Task):
         # 编辑页面开始的话，可能有剧情，最多等待2次
         # 如果是从游戏内战斗画面开始，那么不需要等待剧情，所以可以多检测几次
         self.pre_times = 1 if start_from_editpage else 2
+        # 是否在选择队伍界面自动配队
+        self.auto_team = auto_team
+        # 队伍选择界面被选中的队伍的颜色范围
+        self.COLOR_TEAM_SELECT_DARK = ([90, 60, 35], [110, 80, 55])
 
     @staticmethod
     def judge_whether_in_fight() -> bool:
@@ -41,6 +45,15 @@ class FightQuest(Task):
             SkipStory(pre_times=2).run()
             screenshot()
         return match_pixel((1250, 32), Page.COLOR_BUTTON_WHITE, printit=True)
+
+    def in_edit_team_page(self) -> bool:
+        """判断是否在编辑部队页面"""
+        count = 0
+        for i in range(len(Page.LEFT_FOUR_TEAMS_POSITIONS)):
+            if (match_pixel(Page.LEFT_FOUR_TEAMS_POSITIONS[i], self.COLOR_TEAM_SELECT_DARK) or 
+                    match_pixel(Page.LEFT_FOUR_TEAMS_POSITIONS[i], Page.COLOR_BUTTON_WHITE)):
+                count += 1
+        return count == 4
 
     def pre_condition(self) -> bool:
         if self.force_start:
@@ -74,17 +87,23 @@ class FightQuest(Task):
         screenshot()
         if Page.is_page(PageName.PAGE_EDIT_QUEST_TEAM):
             return True
+        if self.in_edit_team_page():
+            return True
         if self.backtopic():
             # 如果已经在战斗结束应当返回的页面，那么直接返回
             return False
         # 可能有剧情
         SkipStory(pre_times=2).run()
         sleep(2)
-        return Page.is_page(PageName.PAGE_EDIT_QUEST_TEAM)
+        return Page.is_page(PageName.PAGE_EDIT_QUEST_TEAM) or self.in_edit_team_page()
 
     def on_run(self) -> None:
         if not self.force_start:
             if self.start_from_editpage:
+                if self.auto_team:
+                    # 如果开启了自动配队
+                    self.set_auto_team()
+
                 # 点击出击按钮位置
                 # 用竞技场的匹配按钮精度不够，点击固定位置即可
                 self.run_until(
@@ -152,16 +171,19 @@ class FightQuest(Task):
                 sleeptime=2
             )
         logging.info({"zh_CN": "等待战斗结束...", "en_US": "Waiting for the battle to end..."})
-        # 点魔法点直到战斗结束 或匹配到应当返回的界面
+        skip_story = SkipStory()
+        # 点魔法点直到战斗结束 或匹配到应当返回的界面，或匹配到story界面
         self.run_until(
             lambda: click(Page.MAGICPOINT),
             lambda: match(button_pic(ButtonName.BUTTON_FIGHT_RESULT_CONFIRMB)) or match(
                         button_pic(ButtonName.BUTTON_CONFIRMY),
                         threshold=0.8
-                    ) or self.backtopic(),
+                    ) or self.backtopic() or skip_story.pre_condition(),
                     times=90,
                     sleeptime=2
         )
+        if skip_story.pre_condition():
+            skip_story.run()
         if self.backtopic():
             # 此处返回到backtopic，意味着错误进入了战斗
             click(Page.MAGICPOINT)
@@ -218,7 +240,7 @@ class FightQuest(Task):
                     times=7,
                     sleeptime=1
                 )
-            # 尝试回到backtopic
+            # 尝试回到backtopic，此处会有 “请见下回” 或 “是否观看下一章节” 的弹窗，等久一点
             self.run_until(
                 lambda: click(Page.MAGICPOINT),
                 self.backtopic,
@@ -235,9 +257,27 @@ class FightQuest(Task):
             times=20,
             sleeptime=1
         )
+        logging.info(istr({
+            CN: "结束战斗",
+            EN: "End of fight"
+        }))
         if not backres:
-            # 有的关卡点击下方黄色确认后会进入剧情，然后跳过剧情完直接回到上级页面
+            # 有的关卡点击下方黄色确认后会进入剧情
+            # 然后跳过剧情完大部分会直接回到上级页面
+            # 部分活动剧情会有强制失败后再进入剧情，这个剧情过完后回到交战结束界面，出现获得物品弹窗，要再点下黄色确认按钮
             SkipStory(pre_times=3).run()
+            backto_res = self.run_until(
+                lambda: click(button_pic(ButtonName.BUTTON_CONFIRMY), threshold=0.8) or click(Page.MAGICPOINT),
+                self.backtopic
+            )
+            if not backto_res:
+                logging.warn(istr({
+                    CN: "未能回到预期界面",
+                    EN: "Failed to return to the expected backtopic page"
+                }))
+
+
+
 
     def post_condition(self) -> bool:
         return self.backtopic()

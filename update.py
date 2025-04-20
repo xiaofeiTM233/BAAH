@@ -7,9 +7,36 @@ import requests
 import os
 import zipfile
 import time
+import sys
 
-# 本文件内容不要频繁变更
-print("This Updator Version: 0.1.0")
+updater_version = "0.3.1"
+print(f"This Updator Version: {updater_version}")
+
+def copy_to_temp_and_run():
+    """
+    如果当前文件不是temp，创造并运行temp
+
+    返回True时，代表当前文件是update
+    返回False时，代表当前文件是temp
+    """
+    # 获取当前文件的绝对路径
+    # print(os.path.realpath(sys.argv[0]))
+    path = os.path.realpath(sys.executable)
+    # print(os.path.dirname(os.path.realpath(sys.argv[0])))
+    print(f"This exe file path is: {path}")
+    temp_update_name = "update_temp.exe"
+    if not path.endswith(temp_update_name):
+        # 复制此文件并且粘贴为temp.exe
+        with open(path, "rb") as f:
+            content = f.read()
+        with open(temp_update_name, "wb") as f2:
+            f2.write(content)
+        # 执行temp.exe
+        os.system(f'start {temp_update_name}')
+        return True
+    else:
+        print(f"This is {temp_update_name}")
+        return False
 
 def get_one_version_num(versionstr=None):
     """
@@ -90,7 +117,7 @@ def whether_has_new_version():
     
     # 这里读取software_config.json实际存储的字符串
     # DATA/CONFIGS/software_config.json里的NOWVERSION字段
-    with open(os.path.join("DATA", "CONFIGS", "software_config.json"), "r") as f:
+    with open(os.path.join("DATA", "CONFIGS", "software_config.json"), "r", encoding="utf-8") as f:
         confile = json.load(f)
     current_version_num = get_one_version_num(confile["NOWVERSION"])
     new_version_num = get_one_version_num(newest_tag)
@@ -126,17 +153,26 @@ def check_and_update():
     # 根据update.zip结尾的url下载文件
     target_url = version_info.update_zip_url
     targetfilename = os.path.basename(target_url)
-    print("Dowloading...Please wait")
+    print("Downloading...Please wait")
     # 不存在zip文件则下载
     if not os.path.exists(targetfilename):
         try:
-            response = requests.get(target_url, timeout=10)
+            response = requests.get(target_url, stream=True, timeout=10)
             if response.status_code == 200:
+                block_size = 102400 # B
+                total_size = int(response.headers.get('content-length', 0)) # B
+                print("total_size: ", total_size/1024, "kB")
+                now_size = 0 # B
                 with open(targetfilename, "wb") as f:
-                    f.write(response.content)
+                    for data in response.iter_content(block_size):
+                        f.write(data)
+                        # 保留两位小数
+                        now_size += block_size
+                        print(f"\r{now_size/total_size:.2%}".ljust(10), end="")
+                    print("")
                 print("Downloading update zip: Success")
             else:
-                print("Downloading update zip: Failed")
+                print("Downloading update zip: Failed (not 200)")
                 return
         except Exception as e:
             print("Downloading new version: Failed")
@@ -208,15 +244,22 @@ def check_and_update():
     # 删除下载的zip文件
     os.remove(targetfilename)
     print(f"Deleted the downloaded ZIP file: {targetfilename}.")
-        
+
 open_GUI_again = False
-if __name__ == "__main__":
+
+def main():
     try:
-        check_and_update()
-        print("========== [UPDATE SUCCESS] =========")
+        is_update_file = copy_to_temp_and_run()
+        if not is_update_file:
+            # 如果是temp，执行check_and_update
+            check_and_update()
+            print("========== [UPDATE SUCCESS] =========")
+        else:
+            # 如果是update本体，直接退出，让temp执行
+            return
     except Exception as e:
         traceback.print_exc()
-        print("========== ERROR! =========")
+        print("========== [ERROR!] =========")
         if "BAAH_UPDATE.exe" in str(e) and "Permission denied" in str(e):
             print(">>> You can not use this script to replace itself. Please unpack the zip manually. <<<")
     
@@ -230,4 +273,8 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Failed to start BAAH_GUI.exe: {e}")
 
-    input("Press Enter to exit the updater.")
+    input("Press Enter to exit: ")
+
+
+if __name__ == "__main__":
+    main()

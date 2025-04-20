@@ -1,60 +1,85 @@
 from modules.configs.MyConfig import MyConfigger
-from common import TaskName
 
 # 构造一个config，用于在tab间共享softwareconfigdict
 gui_shared_config = MyConfigger()
-curr_config = MyConfigger()
+gui_shared_config.save_software_config() # 保存下全局的softwareconfigdict，以记录版本变更
+# 用于注入到配置页面的js，使tab内容间滚动
+injectJSforTabs = """
+<script>
+// 节流 立刻执行后等待delay再接受
+function throttle(func, delay) {
+    let timer = null; // 定时器
+    return function (...args) {
+        if (!timer) {
+            func.apply(this, args); // 执行方法
+            timer = setTimeout(() => {
+                timer = null; // 清空定时器，允许下一次调用
+            }, delay);
+        }
+    };
+}
 
+// 阻止input上的滚动
+function preventInputScroll(event){
+    if (event.target.tagName.toLowerCase() === "input") { event.preventDefault() }
+}
 
-class TaskStr:
-    """
-    连接配置文件里的task任务名称与i18n包里对应的翻译文字key
+// 监听 scrollBoxElement 的滚轮滚动事件
+function handleScroll(event) {
+    // 获取子元素（假设内部子元素是第一个子元素）也就是有scroll这个class的div
+    const childElement = document.querySelector(".locscroll").querySelector("*");
+    console.log(event);
 
-    task_enum: 
-        配置文件里的task任务名称
-    json_key_name:
-        i18n包里的翻译文字key
+    // 获取子元素的滚动位置属性
+    const { scrollTop, scrollHeight, clientHeight } = childElement;
 
-    """
-    def __init__(self, task_enum: TaskName, json_key_name: str):
-        self.task_enum = task_enum
-        self.json_key_name = json_key_name
+    // 找到tags元素们
+    const tagsElements = document.querySelector(".loctabs").children[0].querySelectorAll(".q-tab");
 
+    const findNowSelectedTab = () => {
+        for(let i of tagsElements.keys()){
+            if(tagsElements[i].getAttribute("aria-selected")=="true"){
+                return i;
+            }
+        }
+        return -1;
+    }
 
-CURR_TASK_LIST: list[TaskStr] = [
-    TaskStr(TaskName.LOGIN_GAME, "task_login_game"),
-    TaskStr(TaskName.MOMOTALK, "task_clear_momotalk"),
-    TaskStr(TaskName.CAFE, "task_cafe"),
-    # compatibility, just changed display name
-    TaskStr(TaskName.CAFE_ONLY_TOUCH, "task_cafe_deprecated"),
-    TaskStr(TaskName.TIMETABLE, "task_timetable"),
-    TaskStr(TaskName.CLUB, "task_club"),
-    TaskStr(TaskName.MANUFACTURE, "task_craft"),
-    TaskStr(TaskName.STORE, "task_shop"),
-    TaskStr(TaskName.BUY_AP, "task_buy_ap"),
-    TaskStr(TaskName.BOUNTY, "task_wanted"),
-    TaskStr(TaskName.SPECIAL, "task_special"),
-    TaskStr(TaskName.SCHOOL_EXCHANGE_MEETING, "task_exchange"),
-    TaskStr(TaskName.TACTICAL_CHALLENGE, "task_contest"),
-    TaskStr(TaskName.HARD, "task_hard"),
-    TaskStr(TaskName.EVENT, "task_event"),
-    TaskStr(TaskName.ASSAULT, "task_assault"),
-    TaskStr(TaskName.DAILY, "task_daily"),
-    TaskStr(TaskName.MAIL, "task_mail"),
-    TaskStr(TaskName.NORMAL, "task_normal"),
-    TaskStr(TaskName.PUSH_NORMAL, "push_normal"),
-    TaskStr(TaskName.PUSH_HARD, "push_hard"),
-    TaskStr(TaskName.MAIN_STORY, "push_main_story"),
-    TaskStr(TaskName.CUSTOM, "task_user_def_task"),
-]
+    if (event.deltaY > 0) {
+        // 向下滚动，由于tab底部有200px空白，边距小于20的时候就可以判定为用户想往下一个tab滚了
+        if (scrollTop + clientHeight >= scrollHeight - 20) {
+            console.log("Touch Head.");
+            const nowIndTab = findNowSelectedTab();
+            console.log(nowIndTab);
+            if (nowIndTab !== -1 && nowIndTab!==tagsElements.length-1){
+                tagsElements[nowIndTab+1].click();
+                event.preventDefault();
+            }
+        }
+    } else if (event.deltaY < 0) {
+        // 向上滚动
+        if (scrollTop <= 0) {
+            console.log("Touch Foot.");
+            const nowIndTab = findNowSelectedTab();
+            console.log(nowIndTab);
+            if (nowIndTab !== -1 && nowIndTab!==0){
+                tagsElements[nowIndTab-1].click();
+                event.preventDefault();
+            }
+        }
+    }
+}
+window.addEventListener("load", ()=>{
+    if(!window.jsinjected){
+        const scrollBoxElement = document.querySelector(".locscroll");
+        const throttledHandleScroll = throttle(handleScroll, 400);
+        
+        scrollBoxElement.addEventListener("wheel", throttledHandleScroll);
+        scrollBoxElement.addEventListener("wheel", preventInputScroll);
+        window.jsinjected = true;
+        console.log("JS is injected");
+    }
+})
 
-
-def get_task_name_map_dict(config_cls: MyConfigger) -> dict:
-    """
-    can get a map of task_name(in code) to task_name(diff language from config file set that one)
-    Args:
-        config_cls(MyConfigger): a MyConfigger class that loaded file name
-    Returns:
-        a dict that key:val is code task name: language task name
-    """
-    return {i.task_enum.value: config_cls.get_text(i.json_key_name) for i in CURR_TASK_LIST}
+</script>
+"""

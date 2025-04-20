@@ -2,15 +2,25 @@ from nicegui import ui, run
 from gui.components.cut_screenshot import cut_screenshot
 from gui.components.list_edit_area import list_edit_area
 import os
+import subprocess
+import time
 
 from modules.utils import screencut_tool, connect_to_device, screen_shot_to_global
 
-def set_other(config, load_jsonname):
+def set_other(config, gui_shared_config):
     with ui.row():
         ui.link_target("TOOL_PATH")
         ui.label(config.get_text("setting_other")).style('font-size: x-large')
 
-    ui.label(config.get_text("config_warn_change")).style('color: red')
+    ui.label("BAAH Settings").style('font-size: x-large')
+    
+    with ui.row():
+        # 日志保存
+        ui.checkbox(config.get_text("config_output_log")).bind_value(gui_shared_config.softwareconfigdict, 'SAVE_LOG_TO_FILE')
+    
+    with ui.row():
+        # 异常日志保存
+        ui.checkbox(config.get_text("config_output_err_log")).bind_value(gui_shared_config.softwareconfigdict, 'SAVE_ERR_CUSTOM_LOG')
     
     with ui.row():
         ui.number(config.get_text("config_run_until_try_times"),
@@ -39,7 +49,13 @@ def set_other(config, load_jsonname):
                     min=1,
                     precision=0).bind_value(config.userconfigdict, 'RESPOND_Y', forward=lambda x:int(x), backward=lambda x:int(x)).bind_enabled(config.userconfigdict, 'LOCK_SERVER_TO_RESPOND_Y', forward=lambda v: not v, backward=lambda v: not v)
         ui.checkbox(config.get_text("config_bind_response_to_server")).bind_value(config.userconfigdict, 'LOCK_SERVER_TO_RESPOND_Y')
-        
+    
+    with ui.row():
+        # 截图模式
+        ui.select(options=["png", "pipe"], label=config.get_text("config_screenshot_mode")).bind_value(config.userconfigdict, 'SCREENSHOT_METHOD').style('width: 400px')
+
+    ui.label(config.get_text("config_warn_change")).style('color: red')
+
     with ui.row():
         # IP+端口
         ui.input(config.get_text("config_ip_root")).bind_value(config.userconfigdict, 'TARGET_IP_PATH',forward=lambda v: v.replace("\\", "/")).style('width: 400px').bind_visibility_from(config.userconfigdict, "ADB_DIRECT_USE_SERIAL_NUMBER", lambda v: not v)
@@ -52,6 +68,7 @@ def set_other(config, load_jsonname):
     
     with ui.row():
         ui.input(config.get_text("config_adb_path")).bind_value(config.userconfigdict, 'ADB_PATH',forward=lambda v: v.replace("\\", "/")).style('width: 400px')
+
     
     with ui.row():
         ui.input(config.get_text("config_screenshot_name")).bind_value(config.userconfigdict, 'SCREENSHOT_NAME',forward=lambda v: v.replace("\\", "/")).style('width: 400px').set_enabled(False)
@@ -62,6 +79,8 @@ def set_other(config, load_jsonname):
     # if whethercut:
     #     with ui.row():
     #         ui.button("测试截图/screencut test", on_click=lambda: os.system(f'start screencut.exe "{load_jsonname}"'))
+
+    ui.label("Test").style('font-size: x-large')
     
     async def test_screencut():
         await cut_screenshot(
@@ -74,3 +93,14 @@ def set_other(config, load_jsonname):
     # 将截图功能内嵌进GUI
     with ui.row():
         ui.button("测试截图/screencut test", on_click=test_screencut)
+
+    async def restart_adb_server():
+        subprocess.run([config.userconfigdict['ADB_PATH'], "kill-server"])
+        time.sleep(0.5)
+        subprocess.run([config.userconfigdict['ADB_PATH'], "start-server"])
+        print("adb server restarted")
+        ui.notify("adb server resstarted")
+
+    # adb kill-server
+    with ui.row():
+        ui.button(config.get_text("button_kill_adb_server"), on_click=restart_adb_server, color="red")

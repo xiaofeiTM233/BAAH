@@ -1,4 +1,5 @@
 import cv2
+from cv2.typing import MatLike
 from modules.utils.log_utils import logging
 import math
 from modules.configs.MyConfig import config
@@ -10,6 +11,12 @@ from os.path import exists
 from math import isnan
 
 ZHT = TextSystem('en')
+
+def get_similarity(img1, img2):
+    """img1: MatLike, img2: MatLike"""
+    similar = np.sum(np.minimum(img1, img2)) / np.sum(np.maximum(img1, img2))
+    return similar
+
 
 def rotate_image_with_transparency(image_mat, angle):
     """
@@ -68,26 +75,32 @@ def check_the_pic_validity(_img, _templ):
         return False
     return True
 
-def match_pattern(sourcepic: str, patternpic: str,threshold: float = 0.9, show_result:bool = False, auto_rotate_if_trans = False) -> Tuple[bool, Tuple[float, float], float]:
+def match_pattern(sourcepic_mat: MatLike, patternpic: str,threshold: float = 0.9, show_result:bool = False, auto_rotate_if_trans = False) -> Tuple[bool, Tuple[float, float], float]:
     """
     Match the pattern picture in the source picture.
     
     If the pattern picture is a transparent picture, it will be rotated to match the source picture.
+
+    Params
+    ------
+    sourcepic_mat: Big pictures which may contains pattern, in MatLike
+    patternpic: Small pattern picture path to be matched, in str
     """
-    logging.debug("Matching pattern {} in {}".format(patternpic, sourcepic))
+    # logging.debug("Matching pattern {}".format(patternpic))
     default_response = (False, (0, 0), 0)
     try:
-        screenshot = cv2.imread(sourcepic)
+        screenshot_cvmat = sourcepic_mat
+        assert screenshot_cvmat is not None
     except:
-        logging.error({"zh_CN": "无法读取截图文件: {}".format(sourcepic), "en_US":"Cannot read the screenshot file: {}".format(sourcepic)})
+        logging.error({"zh_CN": "无法读取截图文件", "en_US":"Cannot read the screenshot file"})
         config.sessiondict["SCREENSHOT_READ_FAIL_TIMES"] += 1
         if config.sessiondict["SCREENSHOT_READ_FAIL_TIMES"] > 5:
             logging.error({"zh_CN": "读取截图文件失败次数过多，退出程序", "en_US":"The number of failed attempts to read the screenshot file is too many, exit the program"})
             raise Exception("由于卡顿或其他原因，截图文件损坏，请尝试清理电脑内存后重启程序")
         return default_response
     # 检查图片是否存在
-    if not exists(sourcepic):
-        logging.error({"zh_CN": "匹配的模板图片 文件不存在: {}".format(sourcepic), "en_US":"The pattern picture file does not exist: {}".format(sourcepic)})
+    if not exists(patternpic):
+        logging.error({"zh_CN": "匹配的模板图片 文件不存在: {}".format(patternpic), "en_US":"The pattern picture file does not exist: {}".format(patternpic)})
         return default_response
     pattern = cv2.imread(patternpic, cv2.IMREAD_UNCHANGED)  # 读取包含透明通道的模板图像
     have_alpha=False
@@ -105,9 +118,9 @@ def match_pattern(sourcepic: str, patternpic: str,threshold: float = 0.9, show_r
             rotate_mask[rotate_mask>0] = 255
             rotate_pattern = rotate_pattern[:, :, :3] # 去除透明通道
             # https://www.cnblogs.com/FHC1994/p/9123393.html
-            if not check_the_pic_validity(screenshot, rotate_pattern):
+            if not check_the_pic_validity(screenshot_cvmat, rotate_pattern):
                 return default_response
-            result = cv2.matchTemplate(screenshot, rotate_pattern, cv2.TM_CCORR_NORMED, mask=rotate_mask)
+            result = cv2.matchTemplate(screenshot_cvmat, rotate_pattern, cv2.TM_CCORR_NORMED, mask=rotate_mask)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
             # print("角度为{}时，最大匹配值为{}".format(degree, max_val))
             if max_val>best_max_val:
@@ -123,14 +136,14 @@ def match_pattern(sourcepic: str, patternpic: str,threshold: float = 0.9, show_r
             pattern_mask = pattern[:, :, 3]  # 透明通道
             pattern_mask[pattern_mask>0] = 255
             pattern = pattern[:, :, :3] # 去除透明通道
-            if not check_the_pic_validity(screenshot, pattern):
+            if not check_the_pic_validity(screenshot_cvmat, pattern):
                 return default_response
-            result = cv2.matchTemplate(screenshot, pattern, cv2.TM_CCOEFF_NORMED, mask=pattern_mask)
+            result = cv2.matchTemplate(screenshot_cvmat, pattern, cv2.TM_CCOEFF_NORMED, mask=pattern_mask)
         else:
             # 无透明度通道
-            if not check_the_pic_validity(screenshot, pattern):
+            if not check_the_pic_validity(screenshot_cvmat, pattern):
                 return default_response
-            result = cv2.matchTemplate(screenshot, pattern[:,:,:3], cv2.TM_CCOEFF_NORMED)
+            result = cv2.matchTemplate(screenshot_cvmat, pattern[:,:,:3], cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
     
     h, w, _ = pattern.shape
@@ -141,15 +154,15 @@ def match_pattern(sourcepic: str, patternpic: str,threshold: float = 0.9, show_r
     if (show_result):
         bottom_right = (top_left[0] + w, top_left[1] + h)
         # draw a rectangle on the screenshot
-        cv2.rectangle(screenshot, top_left, bottom_right, (0, 255, 0), 2)
+        cv2.rectangle(screenshot_cvmat, top_left, bottom_right, (0, 255, 0), 2)
         # draw a circle on the center of the pattern
-        cv2.circle(screenshot, (center_x, center_y), 10, (0, 0, 255), -1)
+        cv2.circle(screenshot_cvmat, (center_x, center_y), 10, (0, 0, 255), -1)
         print("max_val: ", max_val)
-        cv2.imshow('Matched Screenshot', screenshot)
+        cv2.imshow('Matched Screenshot', screenshot_cvmat)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     if(max_val >= threshold):
-        logging.debug("Pattern of {} and {} matched ({}). Center: ({}, {})".format(sourcepic, patternpic, max_val, center_x, center_y))
+        # logging.debug("Pattern {} matched ({}). Center: ({}, {})".format(patternpic, max_val, center_x, center_y))
         return (True, (center_x, center_y), max_val)
     return (False, (0, 0), max_val)
 
@@ -157,7 +170,7 @@ def filter_num(input: str):
     """filter the number in the string"""
     return "".join(filter(str.isdigit, input))
 
-def ocr_pic_area(imageurl, fromx, fromy, tox, toy, multi_lines = False):
+def ocr_pic_area(image_mat, fromx, fromy, tox, toy, multi_lines = False):
     """
     get the string in the image area
     
@@ -175,8 +188,14 @@ def ocr_pic_area(imageurl, fromx, fromy, tox, toy, multi_lines = False):
         ocr_text = ocr_text.strip()
         ocr_text = ocr_text.replace("９", "9")
         return ocr_text
+    
+    def local2global_pos(pixel_pos):
+        """
+        将局部坐标转换为全局坐标
+        """
+        return [pixel_pos[0]+fromx, pixel_pos[1]+fromy]
 
-    rawImage = cv2.imread(imageurl)
+    rawImage = image_mat
     if rawImage is None:
         if not multi_lines:
             return ["",0]
@@ -191,9 +210,9 @@ def ocr_pic_area(imageurl, fromx, fromy, tox, toy, multi_lines = False):
         else:
             # 图像识别多行
             resstring_list = ZHT.detect_and_ocr(rawImage)
-            return [[replace_mis(res.ocr_text), res.score if not isnan(res.score) else 0] for res in resstring_list]
+            return [[replace_mis(res.ocr_text), res.score if not isnan(res.score) else 0, [local2global_pos(res.box[0]), local2global_pos(res.box[2])]] for res in resstring_list]
     
-def match_pixel_color_range(imageurl, x, y, low_range, high_range, printit = False):
+def match_pixel_color_range(image_mat, x, y, low_range, high_range, printit = False):
     """
     match whether the color at that location is between the range
     
@@ -203,7 +222,10 @@ def match_pixel_color_range(imageurl, x, y, low_range, high_range, printit = Fal
     
     return True if the color is between the range
     """
-    img = cv2.imread(imageurl)
+    img = image_mat
+    if img is None:
+        logging.error("Image Matrix is None when trying to match pixel color")
+        return
     x = int(x)
     y = int(y)
     pixel = img[y, x][:3]
@@ -286,6 +308,7 @@ def screencut_tool(left_click = True, right_click = True, img_path = None, quick
     quick_return : bool
         是否开启快速返回, 如果开启，点击右键后会返回坐标
     """
+    window_name = 'Screenshot'
     global start_x, start_y, drawing, quick_return_data
     drawing = False  # 检查是否正在绘制
     start_x, start_y = -1, -1
@@ -301,7 +324,7 @@ def screencut_tool(left_click = True, right_click = True, img_path = None, quick
         # 截图
         global start_x, start_y, drawing, quick_return_data
         if right_click and event == cv2.EVENT_RBUTTONDOWN:  # 检查是否是鼠标右键键点击事件
-            print(f"点击位置: ({x}, {y})", f"BGR 数组: {screenshot[y, x]}")
+            print(f"click: [{x}, {y}]", f"BGR: {[p for p in screenshot[y, x]]}")
             bgr_result[0].append(screenshot[y, x][0])
             bgr_result[1].append(screenshot[y, x][1])
             bgr_result[2].append(screenshot[y, x][2])
@@ -318,12 +341,12 @@ def screencut_tool(left_click = True, right_click = True, img_path = None, quick
             if drawing:
                 screenshot_copy = screenshot.copy()  # 创建截图的副本
                 cv2.rectangle(screenshot_copy, (start_x, start_y), (x, y), (0, 255, 0), 2)
-                cv2.imshow('Matched Screenshot', screenshot_copy)
+                cv2.imshow(window_name, screenshot_copy)
         elif event == cv2.EVENT_LBUTTONUP:  # 检查是否是鼠标左键释放事件
             drawing = False
             end_x, end_y = x, y
             # cv2.rectangle(screenshot, (start_x, start_y), (end_x, end_y), (0, 255, 0), 2)
-            cv2.imshow('Matched Screenshot', screenshot)
+            cv2.imshow(window_name, screenshot)
 
             # 保存截取的区域到当前目录
             selected_region = screenshot[min(start_y,end_y):max(start_y,end_y), min(start_x,end_x):max(start_x,end_x)]
@@ -337,12 +360,74 @@ def screencut_tool(left_click = True, right_click = True, img_path = None, quick
             if quick_return:
                 quick_return_data = filename
                 cv2.destroyAllWindows()
-
-    cv2.imshow('Matched Screenshot', screenshot)
-    cv2.setMouseCallback("Matched Screenshot", mouse_callback_s)
+    
+    # window can change size
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    # window initial size
+    cv2.resizeWindow(window_name, screenshot.shape[1], screenshot.shape[0])
+    cv2.imshow(window_name, screenshot)
+    cv2.setMouseCallback(window_name, mouse_callback_s)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     
     if quick_return:
         return quick_return_data
+    
+
+
+
+def find_color_diff_positions(start_from_xy, distance, pic_data, vertical = True, range_pixels = 10, threshold = 20):
+    """
+    记录颜色发生变化的边缘坐标
+
+    返回坐标列表
+
+    start_from_xy: 
+        起始坐标
+    distance: 
+        变化范围
+    pic_data: 
+        图片数据
+    vertical: 
+        是否垂直变化
+    range_pixels: 
+        每次变化的像素数
+    threshold: 
+        颜色变化的阈值
+    """
+    color_change_coords = []
+    last_color = pic_data[start_from_xy[1]][start_from_xy[0]]
+    range_index = 1 if vertical else 0
+    for range_p in range(start_from_xy[range_index], start_from_xy[range_index] + distance + 1, range_pixels):
+        # 获取当前坐标的颜色
+        # 图片坐标系
+        x_pos = start_from_xy[0] if vertical else range_p
+        y_pos = range_p if vertical else start_from_xy[1]
+        color = pic_data[y_pos][x_pos]
+        # 算颜色的各个分量的差值之和
+        color_diff = abs(int(color[0]) - int(last_color[0])) + abs(int(color[1]) - int(last_color[1])) + abs(int(color[2]) - int(last_color[2]))
+        # 如果颜色变化大于，记录坐标
+        if color_diff > threshold:
+            color_change_coords.append((x_pos, y_pos))
+        last_color = color
+    return color_change_coords
+
+def find_pairs_distance_greater_than(point_list, distance):
+    """
+    找到距离大于distance的两点坐标
+
+    返回两两坐标组合的列表
+
+    point_list: 
+        坐标列表
+    distance: 
+        距离阈值
+    """
+    result = []
+    if len(point_list) < 2:
+        return result
+    for i in range(len(point_list)-1):
+        if abs(point_list[i][0] - point_list[i+1][0]) + abs(point_list[i][1] - point_list[i+1][1]) > distance:
+            result.append((point_list[i], point_list[i+1]))
+    return result

@@ -1,21 +1,22 @@
 from modules.configs.settingMaps import *
 
-from common import TaskName
-
 from time import time
 
 # 用户的脚本config里的默认值以及可选值
 # 如果用户的config里没有某个值，先看能否用settingMaps里映射出来，如果不能，就用默认值代替
-# 注意引用链
+# 注意解析链：(default/map/read) -> post parse
+
 
 # d: default value 默认值
 # s: selective value 可选值
 # m: map value 映射方法
-# from: map value的来源key
-# map: map value的映射函数
+    # from: map value的来源key
+    # map: map value的映射函数，默认是 lambda x=parsedjson[from]: ...
+# p: post parse action 后解析方法，默认是lambda value, parsedjson: ...，如果需要在解析后对值执行一些固定的判断和替换，可以在这重写
 
-# selective value作为提醒值存在，主要的map映射值应当在settingMaps里
+# selective value作为提醒值存在，主要的map映射应当在settingMaps里，-》myAllTask.parse_task
 
+# userconfigdict是一个dict，存储用户的一个脚本的BAAH配置文件的内容，用户可以在GUI里修改这些值
 defaultUserDict = {
     "TIMETABLE_TASK": {"d":[]},
     "WANTED_HIGHEST_LEVEL": {"d":[]},
@@ -24,16 +25,18 @@ defaultUserDict = {
     "EVENT_QUEST_LEVEL": {"d":[]},
     "HARD": {"d":[]},
     "NORMAL": {"d":[]},
-    "TASK_ORDER": {"d": [TaskName.LOGIN_GAME.value]},
+    "TASK_ORDER": {"d": []},
     "SHOP_NORMAL": {"d":[]},
+    "SHOP_NORMAL_BUYALL": {"d":False},
     "SHOP_CONTEST": {"d":[]},
+    "SHOP_CONTEST_BUYALL": {"d":False},
     "PUSH_NORMAL_USE_SIMPLE": {"d":False},
     "PUSH_NORMAL_QUEST": {"d":0},
     "PUSH_NORMAL_QUEST_LEVEL": {"d":1},
     "PUSH_HARD_USE_SIMPLE": {"d":False},
     "PUSH_HARD_QUEST": {"d":0},
     "PUSH_HARD_QUEST_LEVEL": {"d":1},
-    "TASK_ACTIVATE": {"d":[True]},
+    "TASK_ACTIVATE": {"d":[]},
     # new config in 1.2.x
     "SERVER_TYPE":{
         "d":"GLOBAL",
@@ -46,6 +49,13 @@ defaultUserDict = {
     "TARGET_EMULATOR_PATH":{"d":""},
     "CLOSE_EMULATOR_BAAH":{"d":False}, # deprecate
     "CLOSE_EMULATOR_FINISH":{
+        "d": False,
+        "m": {
+            "from": "CLOSE_EMULATOR_BAAH",
+            "map": lambda x: x
+        }
+    },
+    "CLOSE_GAME_FINISH":{
         "d": False,
         "m": {
             "from": "CLOSE_EMULATOR_BAAH",
@@ -75,7 +85,7 @@ defaultUserDict = {
     "GRID_SOL_PATH":{
       "d":"./DATA/grid_solution"  
     },
-    "FANHEXIE":{"d":False},
+    # "FANHEXIE":{"d":False}, # 于1.7.5弃用反和谐设置，对于反和谐差异图片进行动态匹配
     "ACTIVITY_PATH":{
         "d":"com.nexon.bluearchive/.MxUnityPlayerActivity",
         "s":[
@@ -103,7 +113,8 @@ defaultUserDict = {
         "m":{
             "from": "SERVER_TYPE",
             "map": lambda x: server2respond[x] if x in server2respond else 40
-        }
+        },
+        "p": lambda val, parsedjson: server2respond[parsedjson["SERVER_TYPE"]] if parsedjson["LOCK_SERVER_TO_RESPOND_Y"] and parsedjson["SERVER_TYPE"] in server2respond else val # 如果开启了跟随服务器版本，则一直使用服务器版本映射出的y响应坐标
     },
     "SHOP_NORMAL_REFRESH_TIME":{"d": 0},
     'SHOP_NORMAL_SWITCH':{"d":True},
@@ -124,7 +135,10 @@ defaultUserDict = {
     "AUTO_PUSH_EVENT_QUEST":{"d":True},
     "CAFE_COLLECT":{"d":True},
     "CAFE_TOUCH":{"d":True},
-    "CAFE_INVITE":{"d":True},
+    "CAFE_INVITE":{
+        "d":True,
+        "p": lambda val, parsedjson: True # 1.8.10 deprecated
+    },
     "RAISE_ERROR_IF_CANNOT_PUSH_EVENT_QUEST":{"d":True},
     
     # 多倍活动开启状态相关
@@ -191,6 +205,71 @@ defaultUserDict = {
     "GAME_LOGIN_TIMEOUT":{"d":600},
     # 游戏卡启动时的重新启动模拟器最多尝试次数
     "MAX_RESTART_EMULATOR_TIMES":{"d":0},
+
+    # 截图模式, png：保存/读取png图片，pipe读取/单例化管道内数据
+    "SCREENSHOT_METHOD":{
+        "d":"pipe",
+        "s":["png", "pipe"]
+    },
+
+    # 是否执行游戏登录任务（与游戏打开登录，统计消耗的体力，金币，钻石有关）
+    "OPEN_GAME_APP_TASK":{
+        "d":True
+    },
+    # 是否执行所有任务结束后的尾部任务（与统计消耗的体力，金币，钻石有关）
+    "DO_POST_ALL_TASK":{
+        "d":True
+    },
+    # 用户设置的现有配队的属性强度
+    # y一维列表，第一维表示队伍，元素是一个dict表示队伍的属性对应强度(0-10)，属性先认为是4种，{red, blue, yellow, purple}
+    "TEAM_SET_STRENGTH":{
+        "d": [
+            {"red":10, "blue":10, "yellow":10, "purple":10},
+            {"red":10, "blue":10, "yellow":10, "purple":10},
+            {"red":10, "blue":10, "yellow":10, "purple":10},
+            {"red":0, "blue":0, "yellow":0, "purple":0}
+        ]
+    },
+
+    # 咖啡馆设置
+    # 要邀请的学生在momotalk中的序号，从1开始
+    "CAFE1_INVITE_SEQ":{"d":1},
+    "CAFE2_INVITE_SEQ":{"d":2},
+    # 咖啡馆邀请发生同名时是否向后顺延邀请序号
+    "CAFE_INVITE_SAME_NAME_DELAY":{"d":False},
+    # 咖啡馆邀请顺延时是否逆向（向前一位顺延）
+    "CAFE_INVITE_SAME_NAME_DELAY_REVERSE":{"d":False},
+    # 制造是否选择快速制造
+    "CRAFT_USE_QUICK":{"d":False},
+    # 一键扫荡
+    "ONE_CLICK_RAID":{"d":[]},
+
+    # 自动配队
+    "IS_AUTO_ASSAULT_AUTO_TEAM":{"d":False},
+    "ACTIVITY_AUTO_TEAM":{"d":False},
+    "EXPLORE_AUTO_TEAM":{"d":False},
+    # 一键扫讨是否只在有三倍活动下进行
+    "DO_ONE_CLICK_RAID_ONLY_DURING_EVENT":{"d":False},
+    "DO_ONE_CLICK_RAID_ONLY_DURING_NORMAL_TRIPLE":{"d":False},
+    "DO_ONE_CLICK_RAID_ONLY_DURING_HARD_TRIPLE":{"d":False},
+
+    # 用户存储文件的名字
+    "USER_STORAGE_FILE_NAME":{
+        "d":"userStorage",
+        "m":{
+            "from": "SCREENSHOT_NAME",
+            "map": lambda x: x.replace(".png", ".json")
+        }
+    },
+    # 综合战术考试 关卡
+    "EXAM_TARGET_LEVEL":{
+        "d":2
+    },
+    # 综合战术考试 考试队伍次数
+    "EXAM_TEAM_COUNT":{
+        "d":3
+    },
+
 }
 
 # 软件的config里的默认值
@@ -213,7 +292,11 @@ defaultSoftwareDict = {
     # 用户在GUI里的各种备注
     "NOTE":{"d":{
         "HARD_NOTE":"",
-    }}
+    }},
+    # 是否输出日志
+    "SAVE_LOG_TO_FILE":{"d":False},
+    # 发生错误时，是否输出custom日志
+    "SAVE_ERR_CUSTOM_LOG":{"d":True},
 }
 
 # sessiondict是一个dict，存储一个BAAH配置任务的运行时信息，每次运行的时候都会按照以下内容初始化一个新的sessiondict
@@ -230,9 +313,18 @@ defaultSessionDict = {
     "CONTEST_NO_TICKET":{"d":False},
     "HAS_ENTER_EVENT":{"d":False},
     "INFO_DICT":{"d":{}},
-    "INFO_LIST":{"d":[]},
     # 截图文件读取失败的次数
     "SCREENSHOT_READ_FAIL_TIMES":{"d":0},
     # 当前尝试重启模拟器次数
     "RESTART_EMULATOR_TIMES":{"d":0},
+    # 截图数据，当SCREENSHOT_METHOD为pipe时使用
+    "SCREENSHOT_DATA":{"d":None},
+}
+
+# storagedict存储与某一个配置文件对应的游戏实例的持久性存储信息（如钻石历史变化曲线），其生命周期与userconfig相同，但是在脚本运行时是随用随写的
+defaultStorageDict = {
+    # 记录上一次存储 信用点和钻石的日期
+    "LAST_SAVE_MONEY_DIAMOND_DATE":{"d":""},
+    # 记录历史存储的 信用点和钻石和对应日期 列表
+    "HISTORY_MONEY_DIAMOND_LIST":{"d":[]},
 }

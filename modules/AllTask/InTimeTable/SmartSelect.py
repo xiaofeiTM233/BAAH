@@ -107,15 +107,19 @@ class SmartSelect(Task):
                 if room_num not in opendict or opendict[room_num] == 1:
                     # 不存在的房间 或 房间未解锁，结束
                     break
+                elif opendict[room_num] == 0.5:
+                    # 已经点击过的房间，跳过
+                    continue
                 else:
-                    lockednum = sum(opendict.values())
+                    # 对于解锁且未被点击的房间计算分数 
+                    lockednum = list(opendict.values()).count(1)
                     rooms_scores.append([i, room_num, self.evaluate_score(room_num, heartdict[room_num], lockednum)])
             # 清除弹窗
             self.clear_popup()
             # 往后翻页
             click((1248, 362), sleeptime=1)
         # 此时回到第一个地区
-        # print(rooms_scores)
+        # logging.info(rooms_scores)
         # 大到小排序, 取前tickets个
         rooms_scores.sort(key=lambda x: x[2], reverse=True)
         rooms_scores = rooms_scores[:tickets]
@@ -128,7 +132,7 @@ class SmartSelect(Task):
             if i not in timetable_dict:
                 timetable_dict[i] = []
             timetable_dict[i].append(room_num)
-        print(timetable_dict)
+        logging.info(timetable_dict)
         # 点击
         for i in range(max_location_ind + 1):
             # 处理i地区

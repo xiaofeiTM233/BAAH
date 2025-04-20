@@ -46,14 +46,12 @@ class GridQuest(Task):
         "any": "任意"
     }
 
-    def __init__(self, grider: GridAnalyzer, backtopic, require_type, name="GridQuest") -> None:
+    def __init__(self, grider: GridAnalyzer, backtopic, require_type, auto_team=False, name="GridQuest") -> None:
         super().__init__(name)
         self.backtopic = backtopic
         self.grider = grider
         self.require_type = require_type
 
-        # 当前关注的队伍下标
-        self.now_focus_on_team = 0
         # 用于本策略的队伍名字，字母列表，["A","B","C"...]， 其内涵的潜在关系是队伍“A"对应的下标为0，队伍编号为1
         self.team_names = []
         # 上一次action
@@ -64,6 +62,13 @@ class GridQuest(Task):
         }
         # 上一次为了队伍移动点击的位置
         self.last_click_position = [-1, -1]
+        # 是否自动配队
+        self.auto_team = auto_team
+        # 推图文件队伍下标到实际队伍下标的映射
+        self.ind_map = self.grider.get_map_from_team_name2real_team_ind(self.require_type)
+        # 开启自动配队的话，使用从0开始的range作为ind_map
+        if self.auto_team:
+            self.ind_map = list(range(len(self.ind_map)))
 
     def pre_condition(self) -> bool:
         click(Page.MAGICPOINT, 1)
@@ -177,7 +182,8 @@ class GridQuest(Task):
         # 清弹窗
         self.run_until(
             lambda: click(Page.MAGICPOINT),
-            lambda: match_pixel(Page.MAGICPOINT, Page.COLOR_WHITE)
+            lambda: match_pixel(Page.MAGICPOINT, Page.COLOR_WHITE),
+            times=12
         )
         logging.info({"zh_CN": "尝试呼出弹窗", "en_US": "Try Callout Popup"})
         # 出弹窗
@@ -191,7 +197,8 @@ class GridQuest(Task):
         # 清弹窗
         self.run_until(
             lambda: click(Page.MAGICPOINT),
-            lambda: match_pixel(Page.MAGICPOINT, Page.COLOR_WHITE)
+            lambda: match_pixel(Page.MAGICPOINT, Page.COLOR_WHITE),
+            times=12
         )
 
     def get_now_focus_on_team(self):
@@ -219,7 +226,6 @@ class GridQuest(Task):
                                     "down during the battle, and turn on the skip battle option "
                                     "in the lower right corner of the grid"})
             raise Exception("识别左下角切换队伍的按钮文字失败，请确保你的游戏设置-战斗时上下黑边为关闭，且走格子右下角的跳过战斗选项为开启")
-        self.now_focus_on_team = nowteam_ind
         return nowteam_ind
 
     def print_team_config(self, _now_need_team_set):
@@ -273,8 +279,8 @@ class GridQuest(Task):
                 # 让用户去配队！
                 need_user_set_teams = True
                 break
-        # 如果开启了彩虹队配置，则不用配队
-        if config.userconfigdict["EXPLORE_RAINBOW_TEAMS"]:
+        # 如果开启了彩虹队配置 或 开启了自动配队，则不用配队
+        if config.userconfigdict["EXPLORE_RAINBOW_TEAMS"] or self.auto_team:
             need_user_set_teams = False
         if need_user_set_teams:
             # 需要用户配队
@@ -290,6 +296,7 @@ class GridQuest(Task):
             config.sessiondict["LAST_TEAM_SET"] = now_need_team_set_list
             logging.info({"zh_CN": "配队信息已更新", "en_US": "Dispatch information has been updated"})
         else:
+            self.print_team_config(now_need_team_set_list)
             # 不需要用户配队的话就继续用上次的队伍
             display_str = " ".join([self.TEAM_TYPE_NAME.get(item) for item in last_team_set_list])
             logging.info({"zh_CN": f"使用上次的队伍配置: {display_str}",
@@ -354,7 +361,20 @@ class GridQuest(Task):
                                "en_US": "Can't recognize the edit team page, maybe the team start point is blocked and the recognition fails"})
                 self.print_team_config(now_need_team_set_list)
                 input("请按照以上要求手动出击队伍，然后返回至格子地图界面，回车以继续...")
+            # 选择队伍编号
+            # 如果开启了自动配队，第一次循环的时候进行自动配队
+            if self.auto_team and focus_team_ind == 0:
+                self.set_auto_team(
+                    clear_team_inds=list(set(range(4)) - set(self.ind_map)),  # 开启自动配队后，self.ind_map是range序列，range(4)与其做差得出需要清空的队伍
+                    auto_team_inds=self.ind_map
+                )
 
+            left_team_x = 125
+            left_team_ys = [189, 266, 344, 422]
+            self.run_until(
+                lambda: click((left_team_x, left_team_ys[self.ind_map[focus_team_ind]])),
+                lambda: not match_pixel((left_team_x, left_team_ys[self.ind_map[focus_team_ind]]), Page.COLOR_WHITE)
+            )
             # 点击确定
             logging.info({"zh_CN": "点击出击", "en_US": "Tap to strike"})
             self.run_until(
@@ -385,12 +405,13 @@ class GridQuest(Task):
             for action_ind in range(len(actions)):
                 action = actions[action_ind]
                 # 循环回合的每一个action
-                target_team_ind = self.team_names.index(action["team"])
+                target_team_ind = self.team_names.index(action["team"]) # 队伍名字A在team_names ["A", "B"] 中的下标
+                target_team_ind = self.ind_map[target_team_ind] # 队伍名字对应的实际队伍编号-1
                 # 聚焦到目标队伍，每次都获取最新的当前聚焦队伍
                 while (self.get_now_focus_on_team() != target_team_ind):
                     click(self.BUTTON_SEE_OTHER_TEAM_POS, sleeptime=1)
-                logging.info({"zh_CN": f"当前聚焦队伍{self.team_names[self.now_focus_on_team]}",
-                              "en_US": f"Current focus team {self.team_names[self.now_focus_on_team]}"})
+                logging.info({"zh_CN": f"当前聚焦队伍{target_team_ind + 1}",
+                              "en_US": f"Current focus team {target_team_ind + 1}"})
                 logging.info({"zh_CN": f'执行step:{step_ind} action:{action_ind} '
                                        f'队伍{action["team"]}->{action["action"]} {action["target"]}',
                               "en_US": f'exec step:{step_ind} action:{action_ind} '
@@ -451,7 +472,7 @@ class GridQuest(Task):
                         need_click_position = [int(target_team_position[1]+offset_pos[1]),
                                                int(target_team_position[0]+offset_pos[0] + offset_from_cnn_to_real)]
                 except Exception as e:
-                    print(e)
+                    logging.info(e)
                     logging.warn({"zh_CN": "队伍位置识别失败", "en_US": "Failed to recognize the position of the team"})
                     if (action["team"] == self.lastaction["team"] and
                             action["action"] == "portal" and

@@ -1,24 +1,35 @@
 import json
 import os
 import time
-from modules.configs.defaultSettings import defaultUserDict, defaultSoftwareDict, defaultSessionDict
+from modules.configs.defaultSettings import defaultUserDict, defaultSoftwareDict, defaultSessionDict, defaultStorageDict
 from modules.configs.settingMaps import configname2screenshotname
-# 程序入口应当先import这个类，然后调用parse_user_config方法解析该config实例
-# 然后程序入口再import其他模块，在其他模块中import这个类，就可以直接使用这个类的实例了
+# 程序入口先import这个实例，然后调用parse_user_config方法解析该config实例
+# 然后在其他模块中import这个实例，就可以直接使用这个类的实例了，所有使用（变量的获取/设置）应当放在运行时而不是导入时
 
+# TODO: 介于以上问题，此种模式的单例在依赖同单例模式的config时会在使用时出现bug：比如 如果此方法的单例m（myAllTask）是在初始化时读取config值并存储。一段代码先导入实例m，随后对config实例做出parse，再使用实例m，此时实例m存储的依旧是config修改前的值
+
+class ActionType:
+    # 写入userstorage的几个type
+    # 1. 直接写值
+    WRITE = 1
+    # 2. 追加写入列表
+    APPEND = 2
 
 class MyConfigger:
     """
     维护config字典，包含软件config，用户任务config，语言包
     """
-    NOWVERSION="1.7.4"
+    NOWVERSION="1.9.9"
     USER_CONFIG_FOLDER="./BAAH_CONFIGS"
     SOFTWARE_CONFIG_FOLDER="./DATA/CONFIGS"
     LANGUAGE_PACKAGE_FOLDER="./DATA/i18n"
+    LOG_FOLDER="./DATA/LOGS"
+    USER_STORAGE_FOLDER="./DATA/USER_STORAGE"
     SOFTWARE_CONFIG_NAME="software_config.json"
     # 读取config这个py里面的配置
     def __init__(self):
         self.current_dir = os.getcwd()
+        self.create_required_folders()
         # 软件的config
         self.softwareconfigdict = {}
         # 软件的语言包
@@ -26,17 +37,28 @@ class MyConfigger:
         # 一次区服任务的config
         self.userconfigdict = {}
         self.nowuserconfigname = ""
+        # 这个config对应的持久性用户存储
+        self.userstoragedict = {}
         # 一次区服任务运行的session
         self.sessiondict = {}
         self._check_session_config()
         # 读取软件的config
         self.parse_software_config(self.SOFTWARE_CONFIG_NAME)
 
+    def create_required_folders(self):
+        """创建需要的文件夹"""
+        required_folders = [self.LOG_FOLDER, self.USER_STORAGE_FOLDER]
+        for folder in required_folders:
+            folder_path = os.path.join(self.current_dir, folder)
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+
     def parse_user_config(self, file_name, clear_sessiondict = True):
         """
-        读取config文件并解析
-        同时会按需清空sessiondict
+        读取config文件并解析，同时解析对应的userstoragedict
+        同时可按需清空sessiondict
         """
+        # =====读取userconfigdict，清空sessiondict========
         file_path = os.path.join(self.current_dir, self.USER_CONFIG_FOLDER, file_name)
         # 字典新值
         self.userconfigdict = self._read_config_file(file_path)
@@ -49,11 +71,12 @@ class MyConfigger:
         self.nowuserconfigname = file_name
         # 强制设置截图文件名为配置名
         self.userconfigdict["SCREENSHOT_NAME"] = configname2screenshotname(file_name)
-        # 检查截图文件夹路径里是否有DATA, 如果没有DATA，说明是1.1.x版本的配置，需要转换
-        if "DATA" not in self.userconfigdict["PIC_PATH"]:
-            fromkey = defaultUserDict["PIC_PATH"]["m"]["from"]
-            mapfunc = defaultUserDict["PIC_PATH"]["m"]["map"]
-            self.userconfigdict["PIC_PATH"] = mapfunc(self.userconfigdict[fromkey])
+
+        # ====读取userstoragedict========
+        storage_path = os.path.join(self.current_dir, self.USER_STORAGE_FOLDER, self.userconfigdict["USER_STORAGE_FILE_NAME"])
+        self.userstoragedict = self._read_config_file(storage_path)
+        # 检查缺失的配置
+        self._check_storage_config()
         # 输出
         # print("user config字典内容: "+ ",".join([k for k in self.userconfigdict]))
     
@@ -100,7 +123,7 @@ class MyConfigger:
         """
         try:
             if os.path.getsize(file_path) == 0:
-                raise FileNotFoundError("文件为空")
+                raise FileNotFoundError(f"No Such File: {file_path}")
             with open(file_path, 'r', encoding="utf8") as f:
                 dictconfig = json.load(f)
                 # print("读取{}文件成功, 读取了{}个配置".format(file_path, len(dictconfig)))
@@ -122,6 +145,16 @@ class MyConfigger:
                 raise Exception(f'文件不存在： {file_path}')
         except Exception as e:
             raise Exception(f'读取{file_path}文件时发生错误，请检查{file_path}文件: {str(e)}')
+    
+    def _do_post_parse_action(self, defaultmap, selfmap, key):
+        """
+        执行post parse action 对读取/map/default解析后的值进行处理
+
+        postparse function 的两个入参是value, parsedjson
+        """
+        if "p" in defaultmap[key]:
+            postparse = defaultmap[key]["p"]
+            selfmap[key] = postparse(selfmap[key], selfmap)
 
     def _fill_by_map_or_default(self, defaultmap, selfmap, key, print_warn = True):
         """
@@ -166,6 +199,21 @@ class MyConfigger:
             # 如果用户的config里没有这个值
             if shouldKey not in self.userconfigdict:
                 self._fill_by_map_or_default(defaultUserDict, self.userconfigdict, shouldKey)
+        for shouldKey in defaultUserDict:
+            # 确保值存在后，执行post parse action
+            self._do_post_parse_action(defaultUserDict, self.userconfigdict, shouldKey)
+
+    def _check_storage_config(self):
+        """
+        检查用户的存储config内的值是否有缺少，如果有，按照对应关系查找，如果没有，就用默认值
+        """
+        for shouldKey in defaultStorageDict:
+            # 如果用户的config里没有这个值
+            if shouldKey not in self.userstoragedict:
+                self._fill_by_map_or_default(defaultStorageDict, self.userstoragedict, shouldKey)
+        for shouldKey in defaultStorageDict:
+            # 确保值存在后，执行post parse action
+            self._do_post_parse_action(defaultStorageDict, self.userstoragedict, shouldKey)
 
     def _check_software_config(self):
         """
@@ -175,6 +223,9 @@ class MyConfigger:
             # 如果用户的config里没有这个值
             if shouldKey not in self.softwareconfigdict:
                 self._fill_by_map_or_default(defaultSoftwareDict, self.softwareconfigdict, shouldKey)
+        for shouldKey in defaultSoftwareDict:
+            # 确保值存在后，执行post parse action
+            self._do_post_parse_action(defaultSoftwareDict, self.softwareconfigdict, shouldKey)
     
     def _check_session_config(self):
         """
@@ -184,6 +235,9 @@ class MyConfigger:
             # 如果没有这个值
             if shouldKey not in self.sessiondict:
                 self._fill_by_map_or_default(defaultSessionDict, self.sessiondict, shouldKey, print_warn=False)
+        for shouldKey in defaultSessionDict:
+            # 确保值存在后，执行post parse action
+            self._do_post_parse_action(defaultSessionDict, self.sessiondict, shouldKey)
 
     def get_text(self, text_id):
         """
@@ -200,6 +254,33 @@ class MyConfigger:
         file_path = os.path.join(self.current_dir, self.SOFTWARE_CONFIG_FOLDER, self.SOFTWARE_CONFIG_NAME)
         with open(file_path, 'w', encoding="utf8") as f:
             json.dump(self.softwareconfigdict, f, indent=4, ensure_ascii=False)
+
+    def update_user_storage_dict(self, key, value, action_type):
+        """
+        更新userstorage的值。
+        """
+        if action_type == ActionType.WRITE:
+            # 直接写入
+            self.userstoragedict[key] = value
+        elif action_type == ActionType.APPEND:
+            # 追加
+            if key not in self.userstoragedict:
+                self.userstoragedict[key] = []
+            self.userstoragedict[key].append(value)
+
+    def save_user_storage_dict(self):
+        """
+        将userstorage写入文件
+        """
+        file_path = os.path.join(self.current_dir, self.USER_STORAGE_FOLDER, self.userconfigdict["USER_STORAGE_FILE_NAME"])
+        with open(file_path, 'w', encoding="utf8") as f:
+            json.dump(self.userstoragedict, f, indent=4, ensure_ascii=False)
+
+    def append_noti_sentence(self, key:str, sentence:str):
+        """
+        使用键值对的形式添加INFO_DICT里的信息 信息会通过通知事件发送
+        """
+        self.sessiondict["INFO_DICT"][key] = sentence
     
     def get_one_version_num(self, versionstr=None):
         """

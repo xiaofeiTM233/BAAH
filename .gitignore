@@ -1,8 +1,5 @@
 tools/
-test.spec
-jsoneditor.spec
-BAAH_UPDATE.spec
-BAAH.spec
+*.spec
 compact_log.txt
 /*.png
 /DATA/CONFIGS/software_config.json
@@ -13,6 +10,9 @@ compact_log.txt
 /platform-tools-latest.zip
 /DATA/update/
 /BAAH*_update.zip
+notrack_*.py
+/DATA/LOGS
+/DATA/USER_STORAGE
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

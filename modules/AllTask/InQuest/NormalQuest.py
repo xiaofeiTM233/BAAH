@@ -11,7 +11,7 @@ from modules.AllTask.SubTask.ScrollSelect import ScrollSelect
 from modules.AllTask.Task import Task
 
 from modules.utils import click, swipe, match, page_pic, button_pic, popup_pic, sleep, ocr_area, match_pixel, config, screenshot
-from .Questhelper import jump_to_page, close_popup_until_see, quest_has_easy_tab, easy_tab_pos_R, center_tab_pos_L
+from .Questhelper import has_triple_result_event, jump_to_page, close_popup_until_see, quest_has_easy_tab, easy_tab_pos_R, center_tab_pos_L, NORMAL_TAB_POSITION, HARD_TAB_POSITION
 import numpy as np
 
 class NormalQuest(Task):
@@ -27,11 +27,10 @@ class NormalQuest(Task):
     def on_run(self) -> None:
         logging.info({"zh_CN": "切换到普通关卡", "en_US": "switch to normal quest"})
         self.run_until(
-            lambda: click((798, 159)),
+            lambda: click(NORMAL_TAB_POSITION),
             lambda: match(button_pic(ButtonName.BUTTON_NORMAL))
         )
-        if config.userconfigdict["NORMAL_QUEST_EVENT_STATUS"] and not (match_pixel((155, 266), Page.COLOR_PINK,printit=True) or
-                                                                     match_pixel((224, 265), Page.COLOR_PINK,printit=True)):
+        if config.userconfigdict["NORMAL_QUEST_EVENT_STATUS"] and not has_triple_result_event():
             logging.warn({"zh_CN": "今天没有开启活动，跳过", "en_US":"Today is not in the activity, skip"})
             return
         # after switch to normal, go to the page
@@ -59,7 +58,7 @@ class NormalQuest(Task):
                 click((385, 183))
             else:
                 screenshot()
-                if not match(popup_pic(PopupName.POPUP_TASK_INFO)):
+                if not (match(popup_pic(PopupName.POPUP_TASK_INFO)) or match(popup_pic(PopupName.POPUP_TASK_INFO_FANHEXIE))):
                     # 匹配弹窗失败
                     logging.warn({"zh_CN": "未能匹配到扫荡弹窗，跳过", "en_US":"Cannot match the raid popup, skip"})
                     break

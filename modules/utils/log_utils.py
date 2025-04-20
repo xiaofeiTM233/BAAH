@@ -1,7 +1,9 @@
 import sys
+import os
 from time import strftime
+# !在解析config之前导入log_utils的话，config可能未解析userconfigdict，避免使用userconfigdict，只使用softwareconfigdict
 from modules.configs.MyConfig import config
-from modules.utils.I18nstr import EN, CN, JP
+from modules.utils.I18nstr import istr, EN, CN, JP
 
 import hashlib
 
@@ -16,12 +18,78 @@ class MyLogger:
     ERROR = "ERROR"
     
     def __init__(self) -> None:
+        self.custom_log_list = []
         self.info_list = []
         self.debug_list = []
         self.warn_list = []
         self.error_list = []
         self.lang = config.softwareconfigdict["LANGUAGE"]
-        print("使用语言/Use language: ", self.lang)
+        self.logqueue = None
+        print("Use language: ", self.lang)
+        self.tick = False
+        self.logfile = None
+
+    def get_now_time_str(self):
+        return strftime("%Y-%m-%d-%H-%M-%S")
+
+    def tick_log_file_fd(self):
+        """
+        创建log文件fd，同一生命周期内只会创建一次
+        """
+        try:
+            if self.tick:
+                # 第一次尝试logging内容的时候创建fd，后面再触发不需要再创建
+                return
+            self.tick = True
+            # 使用softwareconfigdict的配置来决定是否保存log到文件
+            if config.softwareconfigdict["SAVE_LOG_TO_FILE"]:
+                now_timestr = self.get_now_time_str()
+                log_file_full_path = os.path.join(config.LOG_FOLDER, f"log_{now_timestr}.txt")
+                self.logfile = open(log_file_full_path, "w", encoding="utf-8")
+                print(f"track log file fd, log output to: {log_file_full_path}")
+            else:
+                self.logfile = None
+                print("track log file switch off")
+        except Exception as e:
+            print(f"Create log file error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.logfile = None
+
+    def save_custom_log_file(self):
+        """
+        保存发生了错误的全量custom日志到文件
+        """
+        if self.custom_log_list:
+            try:
+                now_timestr = self.get_now_time_str()
+                file_short_name = f"custom_log_{now_timestr}.txt"
+                file_full_path = os.path.join(config.LOG_FOLDER, file_short_name)
+                with open(file_full_path, "w", encoding="utf-8") as f:
+                    for line in self.custom_log_list:
+                        f.write(line + "\n")
+                logging.info("↓↓↓↓↓↓↓↓↓↓")
+                logging.info(self.get_i18n_sentence({
+                    CN: f"保存全量异常日志到文件: {file_full_path}",
+                    EN: f"Save full custom log to file: {file_full_path}"
+                }))
+                logging.info("↑↑↑↑↑↑↑↑↑↑")
+            except Exception as e:
+                logging.error(self.get_i18n_sentence({
+                    CN: f"保存全量异常日志到文件失败: {e}",
+                    EN: f"Save full custom log to file failed: {e}"
+                }))
+                import traceback
+                traceback.print_exc()
+
+    # 析构函数
+    def __del__(self):
+        if self.logfile:
+            self.logfile.close()
+            self.logfile = None
+    
+    def set_log_queue(self, queue):
+        self.logqueue = queue
         
     def hash_str(self, data):
         """得到字符串的哈希值"""
@@ -42,7 +110,8 @@ class MyLogger:
     def format_msg(self, msg, level):
         """解析dict或str，加入时间，错误级别"""
         msg = self.get_i18n_sentence(msg)
-        return f"{config.NOWVERSION} - {strftime('%M:%S')} - {level} : {str(msg)}"
+        output_line = f"{config.NOWVERSION} - {strftime('%M:%S')} - {level} : {str(msg)}"
+        return output_line
     
     def colorful_print(self, msg, level):
         """
@@ -61,6 +130,21 @@ class MyLogger:
         # else:
         #     print(msg)
         print(msg)
+        # 打印出来的东西都保存到常规log file里
+        self.tick_log_file_fd()
+        if self.logfile:
+            try:
+                self.logfile.write(msg + "\n")
+                self.logfile.flush()
+            except Exception as e:
+                print(f"log file exception: {e}")
+                self.logfile = None
+        if self.logqueue:
+            try:
+                self.logqueue.put_nowait(msg)
+            except Exception as e:
+                print(f"log queue exception: {e}")
+                self.logqueue = None
         # flush
         sys.stdout.flush()
         
@@ -68,16 +152,20 @@ class MyLogger:
     def info(self, msg):
         formatted_msg = self.format_msg(msg, self.INFO)
         self.info_list.append(formatted_msg)
+        self.custom_log_list.append(formatted_msg)
         self.colorful_print(formatted_msg, self.INFO)
     
     def debug(self, msg):
         formatted_msg = self.format_msg(msg, self.DEBUG)
         self.debug_list.append(formatted_msg)
+        # debug只保存到custom log里，不打印也不保存到常规log里
+        self.custom_log_list.append(formatted_msg)
         # self.colorful_print(formatted_msg, self.DEBUG)
     
     def warn(self, msg):
         formatted_msg = self.format_msg(msg, self.WARN)
         self.warn_list.append(formatted_msg)
+        self.custom_log_list.append(formatted_msg)
         self.colorful_print(formatted_msg, self.WARN)
     
     def warning(self, msg):
@@ -86,6 +174,7 @@ class MyLogger:
     def error(self, msg):
         formatted_msg = self.format_msg(msg, self.ERROR)
         self.error_list.append(formatted_msg)
+        self.custom_log_list.append(formatted_msg)
         self.colorful_print(formatted_msg, self.ERROR)
     
 logging = MyLogger()

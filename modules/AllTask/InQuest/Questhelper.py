@@ -3,6 +3,9 @@ from modules.AllTask.Task import Task
 from modules.AllPage.Page import Page
 from modules.utils.log_utils import logging
 
+NORMAL_TAB_POSITION = (798, 159)
+HARD_TAB_POSITION = (1064, 161)
+
 def jump_to_page(to_num: int) -> bool:
     """
     Jump to page
@@ -74,3 +77,8 @@ def quest_has_easy_tab():
     unselect_color_R = ((241, 221, 166), (246, 226, 171))
     has_easy_tab = match_pixel(center_tab_pos_L, unselect_color_L) or match_pixel(easy_tab_pos_R, unselect_color_R)
     return has_easy_tab
+
+
+def has_triple_result_event():
+    """判断普通关和困难关是否处于双/三倍活动中"""
+    return match_pixel((155, 266), Page.COLOR_PINK,printit=True) or match_pixel((224, 265), Page.COLOR_PINK,printit=True)

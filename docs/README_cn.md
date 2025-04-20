@@ -1,6 +1,6 @@
 # 碧蓝档案爱丽丝助手(BAAH)
 
-<div style="display:flex;justify-content:space-around"><img src="../DATA/assets/aris.png" style="width:48%"/><img src="../DATA/assets/kei.png" style="width:48%"/></div>
+<div style="display:flex;justify-content:space-around"><img src="../docs/static/aris.png" style="width:48%"/><img src="../docs/static/kei.png" style="width:48%"/></div>
 
 ---
 
@@ -18,9 +18,10 @@ Discord: https://discord.com/invite/7cEvvfcd
 
 1. 模拟器：分辨率设置为 1280*720像素， 240 DPI。将adb调试打开。注意模拟器的adb调试端口号。
    - 如果你使用的Mumu模拟器，请在设置的底部关闭后台保活运行
+   - 如果adb无法连接，请确认关闭模拟器的网络桥接功能 或 在其他设置中修改adb连接ip。
 2. BA游戏内设置： 
    - 游戏：技能动画关；
-   - 画面：分辨率低；战斗时上下黑边关，
+   - 画面：战斗时上下黑边关，
    - 咖啡厅的摄像机视角手动拉到了最高，最好家具全堆在屏幕最右侧
 
 ## 使用方式
@@ -30,17 +31,33 @@ Discord: https://discord.com/invite/7cEvvfcd
 1. 下载约100MB的压缩包后解压至任意文件夹
 2. 将BAAH_CONFIGS文件夹内的example.json重命名为任一其他名字，如task.json
 3. 双击BAAH_GUI.exe打开界面
-4. 在界面中修改某一配置文件的任务内容后，点击界面右下角的`保存并执行`
+4. 在模拟器设置中，修改端口号为你的模拟器adb调试端口。
+5. 在服务器设置中，选择你游玩的ba服务器。
+6. 在任务执行顺序设置中，启用任务流或点击快速执行按钮运行任务。
 
 ### 通过本地的python环境运行
 
-1. 确保你的python环境版本>=3.10
+1. 确保你的python环境版本==3.10.x
 2. 确保你的电脑中有adb.exe，并稍后修改配置文件里的ADB_PATH使其指向你电脑中的adb.exe
 3. 在命令行中执行`git clone https://github.com/sanmusen214/BAAH.git`
 4. 执行`cd BAAH` 进入项目目录
 5. 执行`pip install -r requirements.txt` 安装所需依赖
 6. 执行`python jsoneditor.py` 运行GUI，请在GUI的底部修改adb.exe的路径
 7. 执行`python main.py config.json`将会按照config.json配置开始执行BAAH
+
+### 通过docker运行
+
+确认你有docker环境，可以通过以下几种方式运行：
+
+1. 拉取镜像：通过获取由[Github Action](https://github.com/sanmusen214/BAAH/actions)构建的镜像，执行`docker run -d --name BAAH -p 8000:8000 ghcr.io/sanmusen214/baah:latest`
+
+2. 本地编译：通过 `git clone https://github.com/sanmusen214/BAAH.git`后，使用提供的`docker-compose.yml`文件，执行`docker compose up -d` (如果没有合适网络的环境可以把docker-compose.yml文件中的`dockerfile: Dockerfile.CN`这行的注释取消)
+
+### 在Android Termux中运行
+
+对Android Termux的适配为实验性适配。详细部署方法在下方链接中，欢迎探讨。
+
+[🔗部署方法](https://blockhaity.github.io/2025/02/10/BAAH%E5%9C%A8%E9%80%86%E5%A4%A9%E7%8E%AF%E5%A2%83%E4%B8%8B%E7%9A%84%E8%BF%90%E8%A1%8C/) by [BlockHaity](https://github.com/BlockHaity)
 
 # 常见问题
 
@@ -107,3 +124,14 @@ BAAH与ALAS，MAA兼容，只是：
 ## 10. 如何让BAAH能够定时自动运行
 
 BAAH的本质是一个可以接受参数的应用程序，当我们打开cmd，cd到BAAH文件夹下，执行`BAAH.exe 你的配置名.json`即可运行该配置。在了解了如何使用windows的任务计划程序后（参见视频教程末尾），您就可以使用任务计划程序控制程序的定时自动运行，结合BAAH中的定时开启/关闭模拟器功能，即可做到解放双手完成BAAH的每日任务。
+
+## 11. GUI运行时参数
+
+你可以在GUI启动时指定参数以实现更多设置，比如 "BAAH_GUI.exe --token 123456" 来为GUI页面设置密码。以下是可使用的参数列表
+
+| Param | Desc | Default |
+|-|-|-|
+| --host | GUI启动时的ip | 127.0.0.1 |
+| --port | GUI启动时的端口 | 8000 （自动查找） |
+| --token | GUI密码 | None |
+| --no-show | 开关，指定时不自动打开浏览器 | |

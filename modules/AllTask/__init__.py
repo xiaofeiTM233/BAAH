@@ -13,6 +13,7 @@ from .InWanted.InWanted import InWanted
 from .InSpecial.InSpecial import InSpecial
 from .InExchange.InExchange import InExchange
 from .InContest.InContest import InContest
+from .InExam.InExam import InExam
 
 from .CollectMails.CollectMails import CollectMails
 from .CollectDailyRewards.CollectDailyRewards import CollectDailyRewards
@@ -25,5 +26,7 @@ from .BuyAP.BuyAP import BuyAP
 from .InCraft.InCraft import InCraft
 
 from .UserTask.UserTask import UserTask
+
+from .SolveChallenge.SolveChallenge import SolveChallenge
 
 from .PostAllTask.PostAllTask import PostAllTask
