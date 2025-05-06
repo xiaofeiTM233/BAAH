@@ -1,3 +1,16 @@
+def handle_error_mention(e, print_method):
+    """
+    根据各种奇妙的异常字符串，给出异常解决提示
+
+    无论是完整process运行还是单个函数运行，出异常后都会调用这个函数
+    """
+    try:
+        if "EOF" in e:
+            print_method("错误提示(EOF): 如果手动出击队伍的话，请使用终端执行推走格子图任务！")
+            print_method("Error Mention(EOF): If you wanna manually select teams, please use terminal to run the grid quest explore task!")
+    except Exception as newe:
+        print("Error when mention error msg: " + str(newe))
+
 def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_queue = None):
     """
     运行BAAH核心流程
@@ -54,13 +67,13 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         if config.userconfigdict["KILL_PORT_IF_EXIST"] or justDoIt:
             try:
                 # 确保端口未被占用
-                res = subprocess_run(["netstat", "-ano"], encoding="gbk").stdout
+                res = subprocess_run(["netstat", "-ano"], encoding=None, text=True).stdout
                 for line in res.split("\n"):
                     if ":"+str(config.userconfigdict["TARGET_PORT"]) in line and "LISTENING" in line:
                         logging.info(line)
                         logging.info({"zh_CN":"端口被占用，正在释放" , "en_US":"Port is used, releasing now"})
                         pid=line.split()[-1]
-                        subprocess_run(["taskkill", "/T", "/F", "/PID", pid], encoding="gbk")
+                        subprocess_run(["taskkill", "/T", "/F", "/PID", pid], encoding=None)
                         logging.info({"zh_CN": "端口被占用，已释放", "en_US": "Port is used, released"})
                         config.sessiondict["PORT_IS_USED"] = True
                         break
@@ -75,7 +88,8 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         检查进程是否存在
         """
         try:
-            tasks = subprocess_run(["tasklist"], encoding="gbk").stdout
+            # encoding使用None，使用text指定获取str结果
+            tasks = subprocess_run(["tasklist"], encoding=None, text=True).stdout
             tasklist = tasks.split("\n")
             for task in tasklist:
                 wordlist = task.strip().split()
@@ -230,7 +244,7 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                 full_path = config.userconfigdict['TARGET_EMULATOR_PATH']
                 emulator_exe = os.path.basename(full_path).split(".exe")[0] + ".exe"
                 subprocess_run(["taskkill", "/T", "/F", "/PID", str(config.sessiondict["EMULATOR_PROCESS_PID"])],
-                            encoding="gbk")
+                            encoding=None)
                 # 杀掉模拟器可见窗口进程后，可能残留后台进程，这里根据adb端口再杀一次
                 BAAH_release_adb_port(justDoIt=True)
             except Exception as e:
@@ -428,17 +442,33 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
             # 打印错误信息, 保存日志信息到文件
             detailed_trackback_str = traceback.format_exc()
             logging.error(detailed_trackback_str)
+            handle_error_mention(str(e), logging.warn)
             logging.save_custom_log_file()
             # 发送错误邮件
             BAAH_send_err_mail(e)
             print_BAAH_finish()
             
             print_BAAH_config_info()
+            def continue_redo_tasks():
+                """出错后用户选择从出错点继续执行脚本"""
+                # 记录CURRENT_PERIOD_TASK_INDEX
+                last_period_task_index = config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]
+                # 重新加载其他config值
+                config.parse_user_config(config.nowuserconfigname)
+                # 重新加载CURRENT_PERIOD_TASK_INDEX
+                config.sessiondict["CURRENT_PERIOD_TASK_INDEX"] = last_period_task_index
+                # 执行BAAH
+                BAAH_main(run_precommand=False)
+            
             BAAH_auto_quit(forcewait=True, key_map_func={
                 "R": {
                     "desc":"estart", # [R]estart
                     "func":lambda: [config.parse_user_config(config.nowuserconfigname), BAAH_main()]
-                      }
+                      },
+                "C": {
+                    "desc":"ontinue", # [C]ontinue
+                    "func":continue_redo_tasks
+                }
             })
 
 
@@ -484,3 +514,4 @@ def BAAH_single_func_process(reread_config_name = None, msg_queue = None, to_run
         # 打印错误信息
         detailed_trackback_str = traceback.format_exc()
         logging.error(detailed_trackback_str)
+        handle_error_mention(str(e), logging.warn)

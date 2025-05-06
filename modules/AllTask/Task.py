@@ -87,10 +87,17 @@ class Task:
             open_app(config.userconfigdict["ACTIVITY_PATH"])
         for i in range(times):
             Task.clear_popup()
+            # 有主页图标点击主页图标
             if match(button_pic(ButtonName.BUTTON_HOME_ICON)):
                 click(button_pic(ButtonName.BUTTON_HOME_ICON), sleeptime=2.5)
                 can_back_home = True
                 Task.clear_popup()
+            # 有社区弹窗，点关闭按钮
+            if match(popup_pic(PopupName.POPUP_LOGIN_FORM)):
+                click(popup_pic(PopupName.POPUP_LOGIN_FORM), sleeptime=1)
+                can_back_home = True
+                Task.clear_popup()
+            # 如果已经在主页
             if(Page.is_page(PageName.PAGE_HOME)):
                 logging.info({"zh_CN": "返回主页成功", "en_US":"Successfully returned to the home page"})
                 return True
@@ -253,7 +260,7 @@ class Task:
     def _modify_now_teams_students(clear_all = False, auto_team = False):
         """取消当前选择队伍的所有人员 或者 进行自动编队"""
         # 快速编辑弹窗Empty人员的背景颜色
-        COLOR_NO_STU_SELECTED = ([164, 158, 154], [184, 178, 174])
+        COLOR_NO_STU_SELECTED = ([164, 158, 145], [184, 178, 174])
         # 自动编队按钮
         AUTO_TEAM_BUILD_BUTTON = [624, 593]
         # 快速编辑
