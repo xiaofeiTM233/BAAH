@@ -1,7 +1,7 @@
 import subprocess
 from ..components.json_file_docker import get_json_list, add_new_config, copy_and_rename_config
 
-from nicegui import ui, app
+from nicegui import ui, app, run
 
 from ..components.check_update import only_check_version
 from ..components.exec_arg_parse import check_token_dialog
@@ -63,14 +63,14 @@ def render_json_list():
                     # 显示更新信息
                     release_area = ui.card()
                     async def show_release():
-                        resultVI = await only_check_version()
+                        resultVI = await run.io_bound(only_check_version)
                         with release_area:
                             ui.label(resultVI.msg).style(f'font-size: x-large;{"color: red" if resultVI.has_new_version else "color: black"}')
                             ui.html(f'<div style="white-space: pre-line;font-size: large">{resultVI.update_body_text}</div>')
                             if resultVI.has_new_version:
                                 # 一键更新按钮
                                 ui.button(gui_shared_config.get_text("button_update_advance"), on_click=update_advance)
-
+                    # TODO: 改成服务器启动时检查更新
                     ui.timer(0.1, show_release, once=True)
                     
                     # 一键更新，唤起更新程序，结束gui进程

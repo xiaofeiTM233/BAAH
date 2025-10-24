@@ -36,6 +36,7 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
     import os
     from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN
     from modules.AllTask.myAllTask import my_AllTask
+    from define_actions import FlowActionGroup
 
     def print_BAAH_info():
         logging.info("+" + "BAAH".center(80, "=") + "+")
@@ -153,31 +154,31 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
             raise Exception("检测到启动BAAH前 端口已被占用，但BAAH无法连接至该端口。上次模拟器可能未被正常关闭，请在启动BAAH前关闭模拟器")
         raise Exception("adb连接失败, 请检查配置里的adb端口")
 
-    def _do_user_defined_action(activity_name, action_list):
-        """执行用户定义的点击坐标或图片序列"""
-        try:
-            if activity_name:
-                open_app(activity_name)
-            sleep(5)
-            logging.info({"zh_CN": f"当前打开的应用: {get_now_running_app()}",
-                        "en_US": f"now running app: {get_now_running_app()}"})
-            # 点击
-            for click_sleep_pair in action_list:
-                screenshot()
-                click_pos, sleep_time = click_sleep_pair
-                # 如果为列表且第一个元素为负数，表示不点击
-                if type(click_pos) == list and click_pos[0] < 0 and click_pos[1] < 0:
-                    if sleep_time > 0:
-                        sleep(sleep_time)
-                    continue
-                logging.info({"zh_CN": f"点击{click_pos}, 等待{sleep_time}秒",
-                            "en_US": f"Cilck {click_pos}, wait {sleep_time} seconds"})
-                logging.info(type(sleep_time))
-                click(click_pos, sleeptime=sleep_time)
-        except Exception as e:
-            logging.error({"zh_CN": "执行用户定义序列失败, 可能是配置有误",
-                        "en_US": "Failed to preform user-defined actions, possibly due to misconfiguration"})
-            logging.error(e)
+    # def _do_user_defined_action(activity_name, action_list):
+    #     """执行用户定义的点击坐标或图片序列"""
+    #     try:
+    #         if activity_name:
+    #             open_app(activity_name)
+    #         sleep(5)
+    #         logging.info({"zh_CN": f"当前打开的应用: {get_now_running_app()}",
+    #                     "en_US": f"now running app: {get_now_running_app()}"})
+    #         # 点击
+    #         for click_sleep_pair in action_list:
+    #             screenshot()
+    #             click_pos, sleep_time = click_sleep_pair
+    #             # 如果为列表且第一个元素为负数，表示不点击
+    #             if type(click_pos) == list and click_pos[0] < 0 and click_pos[1] < 0:
+    #                 if sleep_time > 0:
+    #                     sleep(sleep_time)
+    #                 continue
+    #             logging.info({"zh_CN": f"点击{click_pos}, 等待{sleep_time}秒",
+    #                         "en_US": f"Cilck {click_pos}, wait {sleep_time} seconds"})
+    #             logging.info(type(sleep_time))
+    #             click(click_pos, sleeptime=sleep_time)
+    #     except Exception as e:
+    #         logging.error({"zh_CN": "执行用户定义序列失败, 可能是配置有误",
+    #                     "en_US": "Failed to preform user-defined actions, possibly due to misconfiguration"})
+    #         logging.error(e)
 
     def BAAH_start_VPN():
         """
@@ -185,10 +186,8 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         """
         if config.userconfigdict["USE_VPN"]:
             logging.info({"zh_CN": "启动指定的加速器", "en_US": "Starting the specified accelerator"})
-            _do_user_defined_action(
-                activity_name=config.userconfigdict['VPN_CONFIG']['VPN_ACTIVITY'],
-                action_list=config.userconfigdict['VPN_CONFIG']['CLICK_AND_WAIT_LIST']
-            )
+            open_VPN_flow = FlowActionGroup().load_from_dict(config.userconfigdict["OBJ_ACTIONS_VPN_START"])
+            open_VPN_flow.run_flow()
         else:
             logging.info({"zh_CN": "跳过启动加速器", "en_US": "Skip startup accelerator"})
     
@@ -198,10 +197,8 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         """
         if config.userconfigdict["CLOSE_VPN"]:
             logging.info({"zh_CN": "关闭指定的加速器", "en_US": "Stop the specified accelerator"})
-            _do_user_defined_action(
-                activity_name=config.userconfigdict['VPN_CLOSE_CONFIG']['VPN_ACTIVITY'],
-                action_list=config.userconfigdict['VPN_CLOSE_CONFIG']['CLICK_AND_WAIT_LIST']
-            )
+            open_VPN_flow = FlowActionGroup().load_from_dict(config.userconfigdict["OBJ_ACTIONS_VPN_SHUT"])
+            open_VPN_flow.run_flow()
         else:
             logging.info({"zh_CN": "跳过关闭加速器", "en_US": "Skip stop accelerator"})
 
@@ -389,9 +386,9 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
             logging.error({"zh_CN": "删除截图文件失败", "en_US": "Failed to delete screenshot file"})
 
     def BAAH_send_err_mail(e):
-        """ 发送错误通知邮件 """
-        if config.userconfigdict["ENABLE_MAIL_NOTI"]:
-            logging.info({"zh_CN": "发送错误通知邮件", "en_US": "Send error notification email"})
+        """ 发送错误通知 """
+        if config.userconfigdict["NOTI_WHEN_ERROR"] and (config.userconfigdict["ENABLE_MAIL_NOTI"] or config.userconfigdict["ENABLE_HTTP_NOTI"]):
+            logging.info({"zh_CN": "发送错误通知", "en_US": "Send error notification"})
             try:
                 # 构造通知对象
                 notificationer = create_notificationer()
@@ -414,10 +411,12 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                     EN: "Error Message: " + str(e),
                 }))
                 logging.info(notificationer.send("\n".join(content), title=istr({CN: "BAAH任务失败", EN: "BAAH Error"})))
-                logging.info({"zh_CN": "邮件发送结束", "en_US": "The email has been sent"})
+                logging.info({"zh_CN": "通知发送结束", "en_US": "The notification has been sent"})
             except Exception as eagain:
-                logging.error({"zh_CN": "发送邮件失败", "en_US": "Failed to send email"})
+                logging.error({"zh_CN": "发送通知失败", "en_US": "Failed to send notification"})
                 logging.error(eagain)
+        else:
+            logging.info({"zh_CN": "未开启通知或未设定通知配置", "en_US": "Notification is not enabled or not configured"})
 
     def BAAH_main(run_precommand = True):
         """

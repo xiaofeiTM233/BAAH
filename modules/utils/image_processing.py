@@ -9,8 +9,19 @@ from pponnxcr import TextSystem
 import time
 from os.path import exists
 from math import isnan
+from enum import Enum
 
-ZHT = TextSystem('en')
+OCR_SYS_EN = TextSystem('en')
+OCR_SYS_ZHT = TextSystem('zht')
+OCR_SYS_ZHS = TextSystem('zhs')
+
+class OCR_LANG(Enum):
+    """
+    用于选择ocr所用的语言
+    """
+    EN = 1
+    ZHT = 2
+    ZHS = 3
 
 def get_similarity(img1, img2):
     """img1: MatLike, img2: MatLike"""
@@ -170,13 +181,18 @@ def filter_num(input: str):
     """filter the number in the string"""
     return "".join(filter(str.isdigit, input))
 
-def ocr_pic_area(image_mat, fromx, fromy, tox, toy, multi_lines = False):
+def ocr_pic_area(image_mat, fromx, fromy, tox, toy, multi_lines = False, ocr_lang = OCR_LANG.EN):
     """
     get the string in the image area
     
     axis in image is x: from left to right, y: from top to bottom
     
     """
+    ocr_sys = OCR_SYS_EN
+    if ocr_lang == OCR_LANG.ZHS:
+        ocr_sys = OCR_SYS_ZHS
+    elif ocr_lang == OCR_LANG.ZHT:
+        ocr_sys = OCR_SYS_ZHT
     fromx = int(fromx)
     fromy = int(fromy)
     tox = int(tox)
@@ -193,7 +209,7 @@ def ocr_pic_area(image_mat, fromx, fromy, tox, toy, multi_lines = False):
         """
         将局部坐标转换为全局坐标
         """
-        return [pixel_pos[0]+fromx, pixel_pos[1]+fromy]
+        return [int(pixel_pos[0]+fromx), int(pixel_pos[1]+fromy)]
 
     rawImage = image_mat
     if rawImage is None:
@@ -205,11 +221,11 @@ def ocr_pic_area(image_mat, fromx, fromy, tox, toy, multi_lines = False):
         rawImage = rawImage[fromy:toy, fromx:tox]
         if not multi_lines:
             # 图像识别单行
-            resstring = ZHT.ocr_single_line(rawImage)
+            resstring = ocr_sys.ocr_single_line(rawImage)
             return [replace_mis(resstring[0]), resstring[1] if not isnan(resstring[1]) else 0]
         else:
             # 图像识别多行
-            resstring_list = ZHT.detect_and_ocr(rawImage)
+            resstring_list = ocr_sys.detect_and_ocr(rawImage)
             return [[replace_mis(res.ocr_text), res.score if not isnan(res.score) else 0, [local2global_pos(res.box[0]), local2global_pos(res.box[2])]] for res in resstring_list]
     
 def match_pixel_color_range(image_mat, x, y, low_range, high_range, printit = False):
@@ -318,6 +334,10 @@ def screencut_tool(left_click = True, right_click = True, img_path = None, quick
         screenshot = cv2.imread("./{}".format(config.userconfigdict['SCREENSHOT_NAME']))
     else:
         screenshot = cv2.imread(img_path)
+    # 判断None
+    if screenshot is None:
+        logging.info("The screen shot picture is None")
+        return quick_return_data
     # 平均最大最小bgr
     bgr_result = [[],[],[]]
     def mouse_callback_s(event, x, y, flags, param):

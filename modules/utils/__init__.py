@@ -110,7 +110,7 @@ def match(imgurl:str, threshold:float = 0.9, returnpos = False, rotate_trans=Fal
     else:
         return match_pattern(get_screenshot_cv_data(),imgurl, threshold=threshold, auto_rotate_if_trans=rotate_trans)[0]
 
-def ocr_area(frompixel, topixel, multi_lines = False) -> Tuple[str, float]:
+def ocr_area(frompixel, topixel, multi_lines = False, ocr_lang = OCR_LANG.EN) -> Tuple[str, float]:
     """
     OCR the area in the given rectangle area of screenshot
     
@@ -121,10 +121,10 @@ def ocr_area(frompixel, topixel, multi_lines = False) -> Tuple[str, float]:
     """
     lowerpixel = (min(frompixel[0], topixel[0]), min(frompixel[1], topixel[1]))
     highterpixel = (max(frompixel[0], topixel[0]), max(frompixel[1], topixel[1]))
-    ocr_result = ocr_pic_area(get_screenshot_cv_data(), lowerpixel[0], lowerpixel[1], highterpixel[0], highterpixel[1], multi_lines=multi_lines)
+    ocr_result = ocr_pic_area(get_screenshot_cv_data(), lowerpixel[0], lowerpixel[1], highterpixel[0], highterpixel[1], multi_lines=multi_lines, ocr_lang = ocr_lang)
     return ocr_result
 
-def ocr_area_0(frompixel, topixel) -> bool:
+def ocr_area_0(frompixel, topixel, ocr_lang = OCR_LANG.EN) -> bool:
     """
     OCR the number in the given rectangle area whether it is 0, return False if length>1
     
@@ -135,7 +135,7 @@ def ocr_area_0(frompixel, topixel) -> bool:
     """
     lowerpixel = (min(frompixel[0], topixel[0]), min(frompixel[1], topixel[1]))
     highterpixel = (max(frompixel[0], topixel[0]), max(frompixel[1], topixel[1]))
-    res_str = ocr_pic_area(get_screenshot_cv_data(), lowerpixel[0], lowerpixel[1], highterpixel[0], highterpixel[1])[0]
+    res_str = ocr_pic_area(get_screenshot_cv_data(), lowerpixel[0], lowerpixel[1], highterpixel[0], highterpixel[1], ocr_lang = ocr_lang)[0]
     res_str = res_str.strip()
     allpossibles = ["0", "O", "o", "Q", "０"]
     # 如果长度为1，就判断它是不是0
@@ -151,6 +151,15 @@ def ocr_area_0(frompixel, topixel) -> bool:
     #             return True
     # 长度大于1直接返回False
     return False
+
+def get_pixel(xy):
+    """
+        get the pixel color at the given position
+        
+        axis is in image form
+    """
+    sc_mat_data = get_screenshot_cv_data()
+    return sc_mat_data[int(xy[1]), int(xy[0])][:3] if sc_mat_data is not None else [-1, -1, -1]
 
 def match_pixel(xy, color, printit = False):
     """
@@ -263,4 +272,43 @@ def check_connect():
     logging.warn({"zh_CN": "请检查adb与模拟器连接端口号是否正确", "en_US":"Please check if the adb and emulator connection port number is correct"})
     if "127.0.0.1" in getNewestSeialNumber():
         logging.warn({"zh_CN": "请确保关闭模拟器网络桥接", "en_US":"Please check if the emulator network bridging is turned off"})
+    return False
+
+def _global_screenshot_check():
+    """
+    全局的截图元素检查，是否有卡顿弹窗等
+    """
+    if "NGS" in ocr_area([444, 307], [829, 355])[0]:
+        raise EmulatorBlockError(istr({
+            CN: "匹配到NGS，触发模拟器卡顿异常",
+            EN: "Match NGS, trigger emulator lag error"
+        }))
+
+def logic_run_until(func1, func2, times=None, sleeptime = None) -> bool:
+    """
+    重复执行func1，至多times次或直到func2成立
+    
+    func1内部应当只产生有效操作一次或内部调用截图函数, func2判断前会先触发截图
+    
+    每次执行完func1后,等待sleeptime秒
+
+    如果func2成立退出，返回true，否则返回false
+    """
+    # 设置times，如果传进来是None，就用config里的值
+    if(times == None):
+        times = config.userconfigdict["RUN_UNTIL_TRY_TIMES"]
+    # 设置sleeptime，如果传进来是None，就用config里的值
+    if(sleeptime == None):
+        sleeptime = config.userconfigdict["RUN_UNTIL_WAIT_TIME"]
+    for i in range(times):
+        screenshot()
+        if(func2()):
+            return True
+        func1()
+        sleep(sleeptime)
+        _global_screenshot_check()
+    screenshot()
+    if(func2()):
+        return True
+    logging.warning("run_until exceeded max times")
     return False

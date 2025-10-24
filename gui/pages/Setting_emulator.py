@@ -69,7 +69,7 @@ def set_emulator(config):
     
     with ui.row():    
         ui.input(config.get_text("config_emulator_path"),
-                    ).bind_value(config.userconfigdict, 'TARGET_EMULATOR_PATH',forward=lambda v: v.replace("\\", "/").replace('"','')).style('width: 400px')
+                    ).bind_value(config.userconfigdict, 'TARGET_EMULATOR_PATH',forward=lambda v: v.replace("\\", "/").replace('"','').replace('nx_main/MuMuNxMain.exe','nx_device/12.0/shell/MuMuNxDevice.exe')).style('width: 400px')
     
     # 结束后自动关闭操作
     with ui.card():

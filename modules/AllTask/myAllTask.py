@@ -19,6 +19,7 @@ class TaskName():
     CLUB = "社团"
     MANUFACTURE = "制造"
     STORE = "商店"
+    FREE_SHOP_AWARD = "每日免费奖励"
     BUY_AP = "购买AP"
     BOUNTY = "悬赏通缉"
     SPECIAL = "特殊任务"
@@ -121,6 +122,12 @@ class TaskInstanceMap:
                     task_module = InShop,
                     task_params = {}
                 ),
+            TaskName.FREE_SHOP_AWARD: TaskInstance(
+                    task_config_name = TaskName.FREE_SHOP_AWARD,
+                    i18n_key_name = "task_daily_free_award",
+                    task_module = InFreeAward,
+                    task_params = {}
+            ),
             TaskName.BUY_AP: TaskInstance(
                     task_config_name = TaskName.BUY_AP,
                     i18n_key_name = "task_buy_ap",

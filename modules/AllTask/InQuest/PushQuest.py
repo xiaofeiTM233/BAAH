@@ -109,8 +109,11 @@ class PushQuest(Task):
                 logging.info({"zh_CN": "存在简易攻略", "en_US": "There is a short guide"})
                 offsety = 30
             # 识别关卡序号，更新最新的page_ind和level_ind
-            left_up = ocr_area((139 + offsetx, 197 + offsety), (216 + offsetx, 232 + offsety))
-            page_level = left_up[0].split(" ")[0].replace("|", "").replace("[", "").replace("]", "").strip().split("-")
+            left_up = ocr_area((139 + offsetx, 197 + offsety), (225 + offsetx, 232 + offsety))
+            page_level = left_up[0].split(" ")[0].replace("|", "").replace("[", "").replace("I", "").replace("]", "").strip().split("-")
+            # 后处理split("-")后面的内容，ocr容易把关卡分隔符识别成1，这里判断如果关卡号两位数,只保留两位数的第一位
+            if len(page_level) == 2 and len(page_level[1]) == 2:
+                page_level[1] = page_level[1][0]
             try:
                 # 如16-4这种数字组合都能够成功分割
                 logging.info({"zh_CN": f"分割后的关卡序号：{page_level}",
@@ -182,8 +185,11 @@ class PushQuest(Task):
                 walk_grid = True
             if not walk_grid:
                 enteredit = self.run_until(
-                    lambda: click(button_pic(ButtonName.BUTTON_TASK_START)),
-                    lambda: match(page_pic(PageName.PAGE_EDIT_QUEST_TEAM)) or self.has_cost_popup()
+                    # 等级过高会有个 蓝色的确认按钮 警告等级过高的通知，直接点掉
+                    lambda: click(button_pic(ButtonName.BUTTON_TASK_START)) or click(button_pic(ButtonName.BUTTON_CONFIRMB)),
+                    # 如果检测到蓝色OK，此lambda应当阻止进行has_cost_popup的检测
+                    lambda: not match(button_pic(ButtonName.BUTTON_CONFIRMB)) and  (match(page_pic(PageName.PAGE_EDIT_QUEST_TEAM)) or self.has_cost_popup()) # 防止漏检测，此处cost_popup里检测到通知弹窗则认为是要买票
+                    # 体力不足弹窗标题购买体力，卷票次数不足标题是“通知”
                 )
                 if self.has_cost_popup():
                     logging.info(istr({

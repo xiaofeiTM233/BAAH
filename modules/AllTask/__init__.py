@@ -30,4 +30,6 @@ from .UserTask.UserTask import UserTask
 
 from .SolveChallenge.SolveChallenge import SolveChallenge
 
+from .InFreeAward.InFreeAward import InFreeAward
+
 from .PostAllTask.PostAllTask import PostAllTask

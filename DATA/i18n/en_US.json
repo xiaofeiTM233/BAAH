@@ -30,6 +30,7 @@
     "task_side_story":"Side Story",
     "task_oneclick_raid":"One Click Raid",
     "task_event_recap": "Event Recap",
+    "task_daily_free_award":"Daily Free Award",
 
     "setting_emulator": "Emulator Configuration",
     "setting_server": "Server Configuration",
@@ -184,6 +185,8 @@
     "desc_exam_times":"Number of teams to take the exam",
     "desc_exam_allow_fallback":"If the exam fails, attempt to challenge a lower difficulty level",
     "desc_noti_content_diy":"Customize the email content formatting string by wrapping desired fields with %KEY%. You can view available fields in the project's modules/configs/defaultSettings.",
+    "desc_noti_when_error": "Whether to send notification when an error occurs",
+    "desc_noti_when_success": "Whether to send notification when the task is successful",
 
     "config_server_jp": "Japanese Server",
     "config_server_cn": "Chinese Official Server",

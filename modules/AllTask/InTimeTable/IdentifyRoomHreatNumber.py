@@ -13,6 +13,7 @@ def get_hearts_of_rooms(has_scroll_down = False) -> dict:
         baseY = np.linspace(290, 594, 3, dtype=int)
         # 单个房间内爱心x坐标挨个的偏移量 51，日服改动后 71
         OFFSET_X = -51
+        OFFSET_Y = 0
         # 爱心的BGR值 [144 118 255]，日服改动后 [210, 184, 243]
         COLOR_HEART = [[140, 115, 253], [145, 120, 255]]
     else:
@@ -20,6 +21,7 @@ def get_hearts_of_rooms(has_scroll_down = False) -> dict:
         baseX = np.linspace(356, 1044, 3, dtype=int)
         baseY = np.linspace(273, 576, 3, dtype=int)
         OFFSET_X = -72
+        OFFSET_Y = 23
         COLOR_HEART = [[205, 180, 239], [215, 189, 248]]
 
     
@@ -30,7 +32,7 @@ def get_hearts_of_rooms(has_scroll_down = False) -> dict:
             # 一个房间最多三个爱心，向左最多偏移次数3次
             heart_count = 0
             for t in range(3):
-                if match_pixel((x + t * OFFSET_X, y), COLOR_HEART):
+                if match_pixel((x + t * OFFSET_X, y + OFFSET_Y), COLOR_HEART):
                     heart_count += 1
             # 序号从1开始
             total_counts[j * 3 + i + 1] = heart_count
