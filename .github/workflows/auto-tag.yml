@@ -1,0 +1,53 @@
+name: Tag BAAH
+
+run-name: BAAH+${{ github.run_id }}
+
+on:
+  push:
+    branches:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-package:
+    runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: "utf-8"
+      PYTHONUTF8: "1"
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Extract version number
+      id: get_version
+      run: |
+        $version = python package.py -v
+        echo "VERSION_NUMBER=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Check for existing tag
+      id: check_tag
+      run: |
+        $tag = "BAAH${{ steps.get_version.outputs.VERSION_NUMBER }}"
+        $result = git ls-remote --tags origin $tag
+        if ($result) {
+            Write-Output "::error::Already has this tag: $tag"
+            exit 1
+        } else {
+            Write-Output "Tag $tag does not exist. Proceeding."
+        }
+
+    - name: Create Git Tag
+      run: |
+        git tag "BAAH${{ steps.get_version.outputs.VERSION_NUMBER }}"
+        git push origin "BAAH${{ steps.get_version.outputs.VERSION_NUMBER }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
